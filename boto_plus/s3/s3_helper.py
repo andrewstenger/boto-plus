@@ -172,6 +172,7 @@ class S3Helper:
         bucket: str,
         key: str,
         extra_args=None,
+        kms_key=None,
     ):
         filepath_hash = boto_plus.get_local_file_hash(filepath)
 
@@ -186,6 +187,14 @@ class S3Helper:
 
         else:
             all_args = hash_args
+
+        if kms_key is not None:
+            kms_args = {
+                'ServerSideEncryption' : 'aws:kms',
+                'SSEKMSKeyId'          : kms_key,
+            }
+
+            all_args = {**all_args, **kms_args}
 
         self.__s3_resource.meta.client.upload_file(
             Filename=filepath,
