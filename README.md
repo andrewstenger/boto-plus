@@ -7,6 +7,7 @@ An addition to [Python's boto3 library](https://boto3.amazonaws.com/v1/documenta
 
 | Package | Version |
 | ------- | ------- |
+| setuptools | 61.0 |
 | boto3 | 1.34 |
 | botocore | 1.34 |
 | MarkupSafe | 2.1.1 |
