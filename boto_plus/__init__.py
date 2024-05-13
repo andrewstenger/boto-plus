@@ -2,7 +2,6 @@
 from .s3.s3_helper import (
     S3Helper,
 )
-#from .s3 import s3_helper
 
 from .helpers import (
     convert_filepath_to_posix,
