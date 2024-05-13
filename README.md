@@ -4,6 +4,7 @@ An addition to [Python's boto3 library](https://boto3.amazonaws.com/v1/documenta
 
 # Requirements
 - Python >= 3.9 <br> 
+
 | Package | Version |
 | ------- | ------- |
 | boto3 | 1.34 |
