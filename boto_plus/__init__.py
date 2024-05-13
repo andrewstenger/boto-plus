@@ -3,6 +3,10 @@ from .s3.s3_helper import (
     S3Helper,
 )
 
+from .dynamo.dynamo_helper import (
+    DynamoHelper,
+)
+
 from .helpers import (
     convert_filepath_to_posix,
     convert_filepath_to_windows,
