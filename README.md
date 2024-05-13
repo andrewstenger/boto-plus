@@ -36,3 +36,6 @@ pip3 install -U -r requirements.txt
 # install boto-plus
 pip3 install .
 ```
+
+# Unit Testing
+A suite of unit tests have been supplied. These tests implement [Python's unittest library](https://docs.python.org/3/library/unittest.html).
