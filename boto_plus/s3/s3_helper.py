@@ -77,31 +77,46 @@ class S3Helper:
         source_key: str,
         target_bucket: str,
         target_key: str,
+        dryrun=True,
+        verbose=True,
     ):
-        copy_source = {
-            'Bucket' : source_bucket,
-            'Key'    : source_key,
-        }
+        if verbose:
+            prefix = '(dryrun)' if dryrun else ''
+            source_uri = f's3://{source_bucket}/{source_key}'
+            target_uri = f's3://{target_bucket}/{target_key}'
+            print(f'{prefix} Copying {source_uri} to {target_uri}...')
 
-        self.__s3_resource.meta.client.copy(
-            CopySource=copy_source, 
-            Bucket=target_bucket, 
-            Key=target_key,
-        )
+        if not dryrun:
+            copy_source = {
+                'Bucket' : source_bucket,
+                'Key'    : source_key,
+            }
+
+            self.__s3_resource.meta.client.copy(
+                CopySource=copy_source, 
+                Bucket=target_bucket, 
+                Key=target_key,
+            )
 
 
     def copy_objects(
         self,
         payloads: list[dict],
         use_multiprocessing=False,
+        dryrun=True,
+        verbose=True,
     ):
         if use_multiprocessing:
+            for p in payloads:
+                p['dryrun']  = dryrun
+                p['verbose'] = verbose
+
             with mp.Pool() as pool:
                 pool.map(self.__copy_object_mp_unpack, payloads)
 
         else:
             for payload in payloads:
-                self.copy_object(**payload)
+                self.copy_object(**payload, dryrun=dryrun, verbose=verbose)
 
 
     ### move ###
@@ -109,14 +124,20 @@ class S3Helper:
         self,
         payloads: list[dict],
         use_multiprocessing=False,
+        dryrun=True,
+        verbose=True,
     ):
         if use_multiprocessing:
+            for p in payloads:
+                p['dryrun']  = dryrun
+                p['verbose'] = verbose
+
             with mp.Pool() as pool:
                 pool.map(self.__move_object_mp_unpack, payloads)
 
         else:
             for payload in payloads:
-                self.move_object(**payload)
+                self.move_object(**payload, dryrun=dryrun, verbose=verbose)
 
 
     def move_object(
@@ -125,17 +146,23 @@ class S3Helper:
         source_key: str,
         target_bucket: str,
         target_key: str,
+        dryrun=True,
+        verbose=True,
     ):
         self.copy_object(
             source_bucket=source_bucket,
             source_key=source_key,
             target_bucket=target_bucket,
             target_key=target_key,
+            dryrun=dryrun,
+            verbose=verbose,
         )
 
         self.delete_object(
             bucket=source_bucket,
             key=source_key,
+            dryrun=dryrun,
+            verbose=verbose,
         )
 
 
@@ -256,39 +283,22 @@ class S3Helper:
     ### upload ###
     def upload_objects(
         self,
-        local_directory: str,
-        bucket: str,
-        prefix: str,
+        payloads: list[dict],
         use_multiprocessing=False,
+        dryrun=True,
+        verbose=True,
     ):
         if use_multiprocessing:
-            filepaths = [os.path.join(root, filename) for root, dirs, files in os.walk(local_directory) for filename in files]
-            payloads  = [
-                {
-                    'filepath'        : filepath,
-                    'local_directory' : local_directory,
-                    'bucket'          : bucket,
-                    'prefix'          : prefix,
-                }
-                for filepath in filepaths
-            ]
+            for p in payloads:
+                p['dryrun']  = dryrun
+                p['verbose'] = verbose
 
             with mp.Pool() as pool:
                 pool.map(self.__upload_object_mp_unpack, payloads)
 
         else:
-            for root, dirs, files in os.walk(local_directory):
-                for filename in files:
-                    filepath = os.path.join(root, filename)
-                    filepath_no_prefix = filepath.replace(local_directory, '')
-                    partial_key = boto_plus.convert_filepath_to_posix(filepath_no_prefix)
-                    key = posixpath.join(prefix, partial_key)
-
-                    self.upload_object(
-                        filepath=filepath,
-                        bucket=bucket,
-                        key=key,
-                    )
+            for payload in payloads:
+                self.upload_object(**payload, verbose=verbose, dryrun=dryrun)
 
 
     def upload_object(
@@ -298,6 +308,8 @@ class S3Helper:
         key: str,
         extra_args=None,
         kms_key=None,
+        dryrun=True,
+        verbose=True,
     ):
         filepath_hash = boto_plus.get_local_file_hash(filepath)
 
@@ -321,12 +333,18 @@ class S3Helper:
 
             all_args = {**all_args, **kms_args}
 
-        self.__s3_resource.meta.client.upload_file(
-            Filename=filepath,
-            Bucket=bucket,
-            Key=key,
-            ExtraArgs=all_args,
-        )
+        if verbose:
+            prefix = '(dryrun)' if dryrun else ''
+            target_uri = f's3://{bucket}/{key}'
+            print(f'{prefix} Uploading "{filepath}" to "{target_uri}"...')
+
+        if not dryrun:
+            self.__s3_resource.meta.client.upload_file(
+                Filename=filepath,
+                Bucket=bucket,
+                Key=key,
+                ExtraArgs=all_args,
+            )
 
 
     ### download ###
@@ -335,66 +353,43 @@ class S3Helper:
         bucket: str,
         key: str,
         filepath: str,
+        dryrun=True,
+        verbose=True,
     ):
         directory = os.path.dirname(filepath)
         os.makedirs(directory, exist_ok=True)
 
-        self.__s3_resource.meta.client.download_file(
-            Bucket=bucket,
-            Key=key,
-            Filename=filepath,
-        )
+        if verbose:
+            prefix = '(dryrun)' if dryrun else ''
+            source_uri = f's3://{bucket}/{key}'
+            print(f'{prefix} Downloading "{source_uri}" to "{filepath}"...')
+
+        if not dryrun:
+            self.__s3_resource.meta.client.download_file(
+                Bucket=bucket,
+                Key=key,
+                Filename=filepath,
+            )
 
 
     def download_objects(
         self,
-        bucket: str,
-        prefix: str,
-        local_directory: str,
+        payloads: list[dict],
         use_multiprocessing=False,
+        dryrun=True,
+        verbose=True,
     ):
-        keys = self.list_objects(
-            bucket=bucket,
-            prefix=prefix,
-        )
+            if use_multiprocessing:
+                for p in payloads:
+                    p['dryrun']  = dryrun
+                    p['verbose'] = verbose
 
-        if use_multiprocessing:
-            keys_no_prefix = [key.replace(prefix, '') for key in keys]
-            if boto_plus.is_windows_filepath(local_directory):
-                partial_filepaths = [boto_plus.convert_filepath_to_windows(key)]
+                with mp.Pool() as pool:
+                    pool.map(self.__download_object_mp_unpack, payloads)
+
             else:
-                partial_filepaths = keys_no_prefix
-
-            target_filepaths = [os.join(local_directory, filepath) for filepath in partial_filepaths]
-
-            payloads = [
-                {
-                    'bucket'   : bucket,
-                    'key'      : source_key,
-                    'filepath' : target_filepath,
-                }
-                for source_key, target_filepath in zip(keys, target_filepaths)
-            ]
-
-            with mp.Pool() as pool:
-                pool.map(self.__download_object_mp_unpack, payloads)
-
-        else:
-            for key in keys:
-                key_no_prefix = key.replace(prefix, '')
-
-                if boto_plus.is_windows_filepath(local_directory):
-                    partial_filepath = boto_plus.convert_filepath_to_windows(key_no_prefix)
-                else:
-                    partial_filepath = key_no_prefix
-
-                target_filepath = os.join(local_directory, partial_filepath)
-
-                self.download_object(
-                    bucket=bucket,
-                    key=key,
-                    filepath=target_filepath,
-                )
+                for payload in payloads:
+                    self.download_object(**payload, verbose=verbose, dryrun=dryrun)
 
 
     ### sync ###
@@ -403,6 +398,8 @@ class S3Helper:
         source: str,
         target: str,
         use_multiprocessing=False,
+        dryrun=True,
+        verbose=True,
     ):
         if not source.startswith('s3://') and not target.startswith('s3://'):
             raise RuntimeError(f'At least one of "source", "target" must be an S3 URI. (Received "{source}", "{target}")')
@@ -423,6 +420,8 @@ class S3Helper:
                         'target-bucket' : target_bucket,
                         'target-prefix' : target_prefix,
                         'sync-type'     : sync_type,
+                        'dryrun'        : dryrun,
+                        'verbose'       : verbose,
                     }
                     for key in source_keys
                 ]
@@ -441,6 +440,8 @@ class S3Helper:
                         'target-bucket'    : target_bucket,
                         'target-prefix'    : target_prefix, 
                         'sync-type'        : sync_type,
+                        'dryrun'           : dryrun,
+                        'verbose'          : verbose,
                     }
                     for filepath in source_filepaths
                 ]
@@ -456,6 +457,8 @@ class S3Helper:
                         'source-key'       : key,
                         'target-directory' : target,
                         'sync-type'        : sync_type,
+                        'dryrun'           : dryrun,
+                        'verbose'          : verbose,
                     }
                     for key in source_keys
                 ]
@@ -478,6 +481,8 @@ class S3Helper:
                         'source-key'    : source_key,
                         'target-bucket' : target_bucket,
                         'target-prefix' : target_prefix,
+                        'dryrun'        : dryrun,
+                        'verbose'       : verbose,
                     })
 
             elif sync_type == 'local-to-s3':
@@ -494,6 +499,8 @@ class S3Helper:
                         'source-filepath'  : source_filepath,
                         'target-bucket'    : target_bucket,
                         'target-prefix'    : target_prefix,
+                        'dryrun'           : dryrun,
+                        'verbose'          : verbose,
                     })
 
             elif sync_type == 's3-to-local':
@@ -507,6 +514,8 @@ class S3Helper:
                         'source-prefix'    : source_prefix,
                         'source-key'       : source_key,
                         'target-directory' : target,
+                        'dryrun'           : dryrun,
+                        'verbose'          : verbose,
                     })
 
 
@@ -515,6 +524,8 @@ class S3Helper:
         payload: dict,
     ):
         sync_type = payload['sync-type']
+        dryrun    = payload['dryrun']
+        verbose   = payload['verbose']
 
         if sync_type == 's3-to-s3':
             source_bucket = payload['source-bucket']
@@ -543,6 +554,8 @@ class S3Helper:
                     source_key=source_key,
                     target_bucket=target_bucket,
                     target_key=target_key,
+                    dryrun=dryrun,
+                    verbose=verbose,
                 )
 
         elif sync_type == 'local-to-s3':
@@ -570,6 +583,8 @@ class S3Helper:
                     filepath=source_filepath,
                     bucket=target_bucket,
                     key=target_key,
+                    dryrun=dryrun,
+                    verbose=verbose,
                 )
 
         elif sync_type == 's3-to-local':
@@ -604,6 +619,8 @@ class S3Helper:
                     bucket=source_bucket,
                     key=source_key,
                     filepath=target_filepath,
+                    dryrun=dryrun,
+                    verbose=verbose,
                 )
 
 
@@ -728,11 +745,17 @@ class S3Helper:
         self.copy_object(**payload)
 
 
-    def __move_object_mp_unpack(self, payload):
+    def __move_object_mp_unpack(
+        self,
+        payload: dict,
+    ):
         self.move_object(**payload)
 
 
-    def __delete_object_mp_unpack(self, payload):
+    def __delete_object_mp_unpack(
+        self, 
+        payload: dict,
+    ):
         self.delete_object(**payload)
 
 
@@ -740,21 +763,7 @@ class S3Helper:
         self,
         payload: dict,
     ):
-        filepath        = payload['filepath']
-        local_directory = payload['local_directory']
-
-        bucket = payload['bucket']
-        prefix = payload['prefix']
-
-        filepath_no_prefix = filepath.replace(local_directory, '')
-        partial_key = boto_plus.convert_filepath_to_posix(filepath_no_prefix)
-        key = posixpath.join(prefix, partial_key)
-
-        self.upload_object(
-            filepath=filepath,
-            bucket=bucket,
-            key=key,
-        )
+        self.upload_object(**payload)
 
 
 if __name__ == '__main__':
