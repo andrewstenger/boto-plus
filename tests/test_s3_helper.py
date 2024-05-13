@@ -49,6 +49,8 @@ class TestBotoPlus(unittest.TestCase):
     @moto.mock_aws
     def test_upload_object(self):
         # setup
+        dryrun = False
+        verbose = False
         s3 = boto3.resource('s3')
         mock_bucket = 'test-bucket'
         mock_key = 'fake/key.txt'
@@ -73,6 +75,8 @@ class TestBotoPlus(unittest.TestCase):
                     'x-amz-meta-object-hash' : 'abc123'
                 }
             },
+            dryrun=dryrun,
+            verbose=verbose,
         )
         response = s3.Object(bucket_name=mock_bucket, key=mock_key).get()
         response_content = response['Body'].read().decode('utf-8')
@@ -90,6 +94,8 @@ class TestBotoPlus(unittest.TestCase):
     @moto.mock_aws
     def test_copy_object(self):
         # setup
+        dryrun = False
+        verbose = False
         s3 = boto3.resource('s3')
         mock_bucket = 'test-bucket'
         source_mock_key = 'fake/key.txt'
@@ -105,6 +111,8 @@ class TestBotoPlus(unittest.TestCase):
             source_key=source_mock_key,
             target_bucket=mock_bucket,
             target_key=target_mock_key,
+            dryrun=dryrun,
+            verbose=verbose,
         )
 
         # old key was copied to the new location...
@@ -119,6 +127,8 @@ class TestBotoPlus(unittest.TestCase):
     @moto.mock_aws
     def test_move_object(self):
         # setup
+        dryrun = False
+        verbose = False
         s3 = boto3.resource('s3')
         mock_bucket  = 'test-bucket'
         source_mock_key = 'fake/key.txt'
@@ -134,6 +144,8 @@ class TestBotoPlus(unittest.TestCase):
             source_key=source_mock_key,
             target_bucket=mock_bucket,
             target_key=target_mock_key,
+            dryrun=dryrun,
+            verbose=verbose,
         )
 
         # old key was destroyed...
@@ -154,6 +166,8 @@ class TestBotoPlus(unittest.TestCase):
     @moto.mock_aws
     def test_delete_object(self):
         # setup
+        dryrun = False
+        verbose = False
         s3 = boto3.resource('s3')
         mock_bucket  = 'test-bucket'
         mock_key = 'fake/nested/directory/key.txt'
@@ -166,6 +180,8 @@ class TestBotoPlus(unittest.TestCase):
         s3_helper.delete_object(
             bucket=mock_bucket,
             key=mock_key,
+            dryrun=dryrun,
+            verbose=verbose,
         )
 
         # key was destroyed...
@@ -179,6 +195,8 @@ class TestBotoPlus(unittest.TestCase):
     def test_sync_s3_to_s3(self):
         ### test 1 -- s3-to-s3 sync ###
         # setup
+        dryrun = False
+        verbose = False
         s3 = boto3.resource('s3')
         mock_bucket = 'test-bucket'
 
@@ -196,6 +214,8 @@ class TestBotoPlus(unittest.TestCase):
             source=source,
             target=target,
             use_multiprocessing=False,
+            dryrun=dryrun,
+            verbose=verbose,
         )
 
         # if object hash metadata values are equal, the object was synced correctly
@@ -213,6 +233,8 @@ class TestBotoPlus(unittest.TestCase):
     def test_sync_s3_to_local(self):
         ### test 2 -- s3-to-local sync ###
         # setup
+        dryrun = False
+        verbose = False
         s3 = boto3.resource('s3')
         mock_bucket = 'test-bucket'
 
@@ -227,6 +249,8 @@ class TestBotoPlus(unittest.TestCase):
             source=f's3://{mock_bucket}/s3-to-local/inputs/',
             target=f'data/s3-to-local/local-outputs/',
             use_multiprocessing=False,
+            dryrun=dryrun,
+            verbose=verbose,
         )
 
         path = 'data/s3-to-local/local-outputs/subjects/1001/metadata/1001-metadata.csv'
@@ -248,6 +272,8 @@ class TestBotoPlus(unittest.TestCase):
     def test_sync_local_to_s3(self):
         ### test 3 -- local-to-s3 sync ###
         # setup
+        dryrun = False
+        verbose = False
         s3 = boto3.resource('s3')
         mock_bucket = 'test-bucket'
 
@@ -271,6 +297,8 @@ class TestBotoPlus(unittest.TestCase):
             source=f'data/local-to-s3/local-inputs/',
             target=f's3://{mock_bucket}/local-to-s3/outputs/',
             use_multiprocessing=False,
+            dryrun=dryrun,
+            verbose=verbose,
         )
 
         s3_object = s3.Object(bucket_name=mock_bucket, key='local-to-s3/outputs/subject/1001/test-file-1.txt')
