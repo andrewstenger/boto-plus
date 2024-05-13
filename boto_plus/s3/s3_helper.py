@@ -32,7 +32,7 @@ class S3Helper:
         bucket: str,
         prefix: str,
         filter=''
-    ):
+    ) -> list[str]:
         items  = list()
         kwargs = {
             'Bucket': bucket,
@@ -62,7 +62,7 @@ class S3Helper:
         self,
         bucket: str,
         key: str,
-    ):
+    ) -> list[str]:
         versions = list()
         for version in self.__s3_resource.Bucket(bucket).object_versions.filter(Prefix=key):
             versions.append(version.id)
@@ -79,7 +79,7 @@ class S3Helper:
         target_key: str,
         dryrun=True,
         verbose=True,
-    ):
+    ) -> str:
         if verbose:
             prefix = '(dryrun)' if dryrun else ''
             source_uri = f's3://{source_bucket}/{source_key}'
@@ -98,6 +98,9 @@ class S3Helper:
                 Key=target_key,
             )
 
+        uri = f's3://{target_bucket}/{target_key}'
+        return uri
+
 
     def copy_objects(
         self,
@@ -105,18 +108,22 @@ class S3Helper:
         use_multiprocessing=False,
         dryrun=True,
         verbose=True,
-    ):
+    ) -> list[str]:
         if use_multiprocessing:
             for p in payloads:
                 p['dryrun']  = dryrun
                 p['verbose'] = verbose
 
             with mp.Pool() as pool:
-                pool.map(self.__copy_object_mp_unpack, payloads)
+                uris = pool.map(self.__copy_object_mp_unpack, payloads)
 
         else:
+            uris = list()
             for payload in payloads:
-                self.copy_object(**payload, dryrun=dryrun, verbose=verbose)
+                s3_uri = self.copy_object(**payload, dryrun=dryrun, verbose=verbose)
+                uris.append(s3_uri)
+
+        return uris
 
 
     ### move ###
@@ -126,18 +133,22 @@ class S3Helper:
         use_multiprocessing=False,
         dryrun=True,
         verbose=True,
-    ):
+    ) -> list[str]:
         if use_multiprocessing:
             for p in payloads:
                 p['dryrun']  = dryrun
                 p['verbose'] = verbose
 
             with mp.Pool() as pool:
-                pool.map(self.__move_object_mp_unpack, payloads)
+                uris = pool.map(self.__move_object_mp_unpack, payloads)
 
         else:
+            uris = list()
             for payload in payloads:
-                self.move_object(**payload, dryrun=dryrun, verbose=verbose)
+                s3_uri = self.move_object(**payload, dryrun=dryrun, verbose=verbose)
+                uris.append(s3_uri)
+
+        return uris
 
 
     def move_object(
@@ -148,7 +159,7 @@ class S3Helper:
         target_key: str,
         dryrun=True,
         verbose=True,
-    ):
+    ) -> str:
         self.copy_object(
             source_bucket=source_bucket,
             source_key=source_key,
@@ -165,6 +176,9 @@ class S3Helper:
             verbose=verbose,
         )
 
+        uri = f's3://{target_bucket}/{target_key}'
+        return uri
+
 
     ### delete ###
     def delete_object(
@@ -174,7 +188,7 @@ class S3Helper:
         version_id=None,
         dryrun=True,
         verbose=True,
-    ):
+    ) -> str:
         if verbose:
             prefix = '(dryrun)' if dryrun else ''
             if version_id is not None:
@@ -195,6 +209,9 @@ class S3Helper:
                     Key=key,
                 )
 
+        uri = f's3://{bucket}/{key}'
+        return uri
+
 
     def delete_objects(
         self,
@@ -202,18 +219,22 @@ class S3Helper:
         dryrun=True,
         verbose=True,
         use_multiprocessing=False,
-    ):
+    ) -> list[str]:
         if use_multiprocessing:
             for p in payloads:
                 p['dryrun']  = dryrun
                 p['verbose'] = verbose
 
             with mp.Pool() as pool:
-                pool.map(self.__delete_object_mp_unpack, payloads)
+                uris = pool.map(self.__delete_object_mp_unpack, payloads)
 
         else:
+            uris = list()
             for payload in payloads:
-                self.delete_object(**payload, verbose=verbose, dryrun=dryrun)
+                s3_uri = self.delete_object(**payload, verbose=verbose, dryrun=dryrun)
+                uris.append(s3_uri)
+
+        return uris
 
 
     def delete_objects_at_prefix(
@@ -223,7 +244,7 @@ class S3Helper:
         dryrun=True,
         verbose=True,
         use_multiprocessing=False,
-    ):
+    ) -> list[str]:
         if use_multiprocessing:
             payloads = [
                 {
@@ -236,16 +257,20 @@ class S3Helper:
             ]
 
             with mp.Pool() as pool:
-                pool.map(self.__delete_object_mp_unpack, payloads)
+                uris = pool.map(self.__delete_object_mp_unpack, payloads)
 
         else:
+            uris = list()
             for key in self.list_objects(bucket=bucket, prefix=prefix):
-                self.delete_object(
+                s3_uri = self.delete_object(
                     bucket=bucket,
                     key=key,
                     dryrun=dryrun,
                     verbose=verbose,
                 )
+                uris.append(s3_uri)
+
+        return uris
 
 
     def delete_all_versions_of_object(
@@ -254,7 +279,7 @@ class S3Helper:
         key: str,
         dryrun=True,
         verbose=True,
-    ):
+    ) -> list[str]:
         versions = self.list_all_versions_of_object(bucket=bucket, key=key)
         for version in versions:
             versions.append(version)
@@ -269,16 +294,6 @@ class S3Helper:
 
         return versions
 
-    """
-    def delete_all_versions_of_all_objects_at_prefix(
-        self,
-        bucket: str,
-        prefix: str,
-        dryrun=True,
-        verbose=True,
-    ):
-    """
-
 
     ### upload ###
     def upload_objects(
@@ -287,18 +302,22 @@ class S3Helper:
         use_multiprocessing=False,
         dryrun=True,
         verbose=True,
-    ):
+    ) -> list[str]:
         if use_multiprocessing:
             for p in payloads:
                 p['dryrun']  = dryrun
                 p['verbose'] = verbose
 
             with mp.Pool() as pool:
-                pool.map(self.__upload_object_mp_unpack, payloads)
+                uris = pool.map(self.__upload_object_mp_unpack, payloads)
 
         else:
+            uris = list()
             for payload in payloads:
-                self.upload_object(**payload, verbose=verbose, dryrun=dryrun)
+                s3_uri = self.upload_object(**payload, verbose=verbose, dryrun=dryrun)
+                uris.append(s3_uri)
+
+        return uris
 
 
     def upload_object(
@@ -310,7 +329,7 @@ class S3Helper:
         kms_key=None,
         dryrun=True,
         verbose=True,
-    ):
+    ) -> str:
         filepath_hash = boto_plus.get_local_file_hash(filepath)
 
         hash_args = {
@@ -345,6 +364,9 @@ class S3Helper:
                 Key=key,
                 ExtraArgs=all_args,
             )
+
+        uri = f's3://{bucket}/{key}'
+        return uri
 
 
     ### download ###
@@ -735,35 +757,35 @@ class S3Helper:
         self,
         payload: dict,
     ):
-        self.download_object(**payload)
+        return self.download_object(**payload)
 
 
     def __copy_object_mp_unpack(
         self, 
         payload: dict,
     ):
-        self.copy_object(**payload)
+        return self.copy_object(**payload)
 
 
     def __move_object_mp_unpack(
         self,
         payload: dict,
     ):
-        self.move_object(**payload)
+        return self.move_object(**payload)
 
 
     def __delete_object_mp_unpack(
         self, 
         payload: dict,
     ):
-        self.delete_object(**payload)
+        return self.delete_object(**payload)
 
 
     def __upload_object_mp_unpack(
         self,
         payload: dict,
     ):
-        self.upload_object(**payload)
+        return self.upload_object(**payload)
 
 
 if __name__ == '__main__':
