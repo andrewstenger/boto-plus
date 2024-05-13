@@ -526,18 +526,18 @@ class S3Helper:
             partial_target_key = source_key.replace(source_prefix, '')
             target_key = posixpath.join(target_prefix, partial_target_key)
 
-            if self.does_s3_object_exist(bucket=source_bucket, key=source_key):
-                source_remote_file_hash = self.get_remote_file_hash(bucket=source_bucket, key=source_key)
+            if self.does_object_exist(bucket=source_bucket, key=source_key):
+                source_remote_file_hash = self.get_object_hash(bucket=source_bucket, key=source_key)
             else:
                 uri = f's3://{source_bucket}/{source_key}'
                 raise RuntimeError(f'The provided S3 object does not exist: "{uri}"')
 
-            if self.does_s3_object_exist(bucket=target_bucket, key=target_key):
-                target_remote_file_hash = self.get_remote_file_hash(bucket=target_bucket, key=target_key)
+            if self.does_object_exist(bucket=target_bucket, key=target_key):
+                target_object_hash = self.get_object_hash(bucket=target_bucket, key=target_key)
             else:
-                target_remote_file_hash = None
+                target_object_hash = None
 
-            if source_remote_file_hash != target_remote_file_hash:
+            if source_remote_file_hash != target_object_hash:
                 self.copy_object(
                     source_bucket=source_bucket,
                     source_key=source_key,
@@ -560,12 +560,12 @@ class S3Helper:
             else:
                 raise RuntimeError(f'The provided S3 object does not exist: "{source_filepath}"')
 
-            if self.does_s3_object_exist(bucket=target_bucket, key=target_key):
-                target_remote_file_hash = self.get_remote_file_hash(bucket=target_bucket, key=target_key)
+            if self.does_object_exist(bucket=target_bucket, key=target_key):
+                target_object_hash = self.get_object_hash(bucket=target_bucket, key=target_key)
             else:
-                target_remote_file_hash = None
+                target_object_hash = None
 
-            if source_local_file_hash != target_remote_file_hash:
+            if source_local_file_hash != target_object_hash:
                 self.upload_object(
                     filepath=source_filepath,
                     bucket=target_bucket,
@@ -588,8 +588,8 @@ class S3Helper:
                 partial_target_filepath = boto_plus.convert_filepath_to_posix(partial_target_filepath)
                 target_filepath = posixpath.join(target_directory, partial_target_filepath)
 
-            if self.does_s3_object_exist(bucket=source_bucket, key=source_key):
-                source_remote_file_hash = self.get_remote_file_hash(bucket=source_bucket, key=source_key)
+            if self.does_object_exist(bucket=source_bucket, key=source_key):
+                source_remote_file_hash = self.get_object_hash(bucket=source_bucket, key=source_key)
             else:
                 uri = f's3://{source_bucket}/{source_key}'
                 raise RuntimeError(f'The provided S3 object does not exist: "{uri}"')
@@ -626,7 +626,7 @@ class S3Helper:
 
 
     ### other ###
-    def does_s3_object_exist(
+    def does_object_exist(
         self,
         bucket: str,
         key: str,
@@ -645,55 +645,72 @@ class S3Helper:
                 raise exception
 
 
-    def get_size_of_object(
+    def get_object_size(
         self,
         bucket: str,
         key: str,
     ) -> int:
-        response = self.__s3_resource.meta.client.head_object(
-            Bucket=bucket,
-            Key=key,
-        )
+        size_in_bytes = None
 
-        if 'ContentLength' in response:
+        if self.does_object_exist(bucket=bucket, key=key):
+            response = self.__s3_resource.meta.client.head_object(
+                Bucket=bucket,
+                Key=key,
+            )
+
             size_in_bytes = response['ContentLength']
+
         else:
             raise RuntimeError(f'Provided S3 object "s3://{bucket}/{key}" does not exist...')
 
         return size_in_bytes
 
 
-    def get_remote_file_hash(
+    def get_object_creation_datetime(
         self,
         bucket: str,
         key: str,
-    ):
-        if self.does_s3_object_exist(bucket=bucket, key=key):
-            metadata = self.get_remote_file_metadata(bucket=bucket, key=key)
+    ) -> str:
+        creation_datetime = None
 
-            if self.__s3_object_hash_field in metadata:
-                hash_value = metadata[self.__s3_object_hash_field]
-
-            else:
-                raise RuntimeError(f'Provided S3 object "s3://{bucket}/{key}" does not have metadata field "{self.__s3_object_hash_field}".')
+        if self.does_object_exist(bucket=bucket, key=key):
+            s3_object = self.__s3_resource.Object(bucket, key)
+            creation_datetime = s3_object.last_modified.strftime('%Y-%m-%d %H:%M:%S')
 
         else:
-            raise RuntimeError(f'Provided S3 object "s3://{bucket}/{key}" does not exist.')
+            raise RuntimeError(f'Provided S3 object "s3://{bucket}/{key}" does not exist...')
+
+        return creation_datetime
+
+
+    def get_object_hash(
+        self,
+        bucket: str,
+        key: str,
+    ) -> str:
+        metadata = self.get_object_metadata(bucket=bucket, key=key)
+
+        if self.__s3_object_hash_field in metadata:
+            hash_value = metadata[self.__s3_object_hash_field]
+
+        else:
+            raise RuntimeError(f'Provided S3 object "s3://{bucket}/{key}" does not have metadata field "{self.__s3_object_hash_field}".')
+
 
         return hash_value
 
 
-    def get_remote_file_metadata(
+    def get_object_metadata(
         self,
         bucket: str,
         key: str,
     ) -> dict:
-        if self.does_s3_object_exist(bucket=bucket, key=key):
+        if self.does_object_exist(bucket=bucket, key=key):
             s3_object = self.__s3_resource.Object(bucket_name=bucket, key=key)
             return s3_object.metadata
 
         else:
-            return None
+            raise RuntimeError(f'Provided S3 object "s3://{bucket}/{key}" does not exist.')
 
 
     # helpers to unpack dictionary-records for multiprocessing
