@@ -38,4 +38,8 @@ pip3 install .
 ```
 
 # Unit Testing
-A suite of unit tests have been supplied. These tests implement [Python's unittest library](https://docs.python.org/3/library/unittest.html).
+A suite of unit tests have been supplied. These tests implement [Python's unittest library](https://docs.python.org/3/library/unittest.html). <br>
+The unit tests can be run using the following command:
+```
+python3 -m unittest discover ./tests
+```
