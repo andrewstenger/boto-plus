@@ -16,6 +16,7 @@ class S3Helper:
         self.__s3_object_hash_field = 'x-amz-meta-object-hash'
 
 
+    ### list ###
     def list_objects(
         self,
         bucket: str,
@@ -45,6 +46,18 @@ class S3Helper:
                 break
 
         return items
+
+
+    def list_all_versions_of_object(
+        self,
+        bucket: str,
+        key: str,
+    ):
+        versions = list()
+        for version in self.__s3_resource.Bucket(bucket).object_versions.filter(Prefix=key):
+            versions.append(version.id)
+
+        return versions
 
 
     ### copy ###
@@ -121,11 +134,113 @@ class S3Helper:
         self,
         bucket: str,
         key: str,
+        version_id=None,
+        dryrun=True,
+        verbose=True,
     ):
-        self.__s3_resource.meta.client.delete_object(
-            Bucket=bucket,
-            Key=key,
-        )
+        if verbose:
+            prefix = '(dryrun)' if dryrun else ''
+            if version_id is not None:
+                print(f'{prefix} Deleting version "{version_id}" of object "s3://{bucket}/{key}"...')
+            else:
+                print(f'{prefix} Deleting s3://{bucket}/{key}...')
+
+        if not dryrun:
+            if version_id is not None:
+                self.__s3_resource.meta.client.delete_object(
+                    Bucket=bucket,
+                    Key=key,
+                    VersionId=version_id,
+                )
+            else:
+                self.__s3_resource.meta.client.delete_object(
+                    Bucket=bucket,
+                    Key=key,
+                )
+
+
+    def delete_objects(
+        self,
+        payloads: list[dict],
+        dryrun=True,
+        verbose=True,
+        use_multiprocessing=False,
+    ):
+        if use_multiprocessing:
+            for p in payloads:
+                p['dryrun']  = dryrun
+                p['verbose'] = verbose
+
+            with mp.Pool() as pool:
+                pool.map(self.__delete_object_mp_unpack, payloads)
+
+        else:
+            for payload in payloads:
+                self.delete_object(**payload, verbose=verbose, dryrun=dryrun)
+
+
+    def delete_objects_at_prefix(
+        self,
+        bucket: str,
+        prefix: str,
+        dryrun=True,
+        verbose=True,
+        use_multiprocessing=False,
+    ):
+        if use_multiprocessing:
+            payloads = [
+                {
+                    'bucket'  : bucket,
+                    'key'     : key,
+                    'dryrun'  : dryrun,
+                    'verbose' : verbose,
+                }
+                for key in self.list_objects(bucket=bucket, prefix=prefix)
+            ]
+
+            with mp.Pool() as pool:
+                pool.map(self.__delete_object_mp_unpack, payloads)
+
+        else:
+            for key in self.list_objects(bucket=bucket, prefix=prefix):
+                self.delete_object(
+                    bucket=bucket,
+                    key=key,
+                    dryrun=dryrun,
+                    verbose=verbose,
+                )
+
+
+    def delete_all_versions_of_object(
+        self,
+        bucket: str,
+        key: str,
+        dryrun=True,
+        verbose=True,
+    ):
+        versions = self.list_all_versions_of_object(bucket=bucket, key=key)
+        for version in versions:
+            versions.append(version)
+
+            self.delete_object(
+                bucket=bucket,
+                key=key,
+                version_id=version,
+                verbose=verbose,
+                dryrun=dryrun,
+            )
+
+        return versions
+
+    """
+    def delete_all_versions_of_all_objects_at_prefix(
+        self,
+        bucket: str,
+        prefix: str,
+        dryrun=True,
+        verbose=True,
+    ):
+    """
 
 
     ### upload ###
@@ -590,6 +705,10 @@ class S3Helper:
         self.move_object(**payload)
 
 
+    def __delete_object_mp_unpack(self, payload):
+        self.delete_object(**payload)
+
+
     def __upload_object_mp_unpack(
         self,
         payload: dict,
@@ -613,8 +732,7 @@ class S3Helper:
 
 if __name__ == '__main__':
     s3_helper = boto_plus.S3Helper()
-    s3_helper.sync(
-        source='s3://astenger-test/s3-to-local/',
-        target='data/s3-to-local/outputs/',
-        use_multiprocessing=False,
+    s3_helper.list_objects(
+        bucket='loni-data-curated-20230501',
+        prefix='ppmi_500/dataset_metadata/'
     )
