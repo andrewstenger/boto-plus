@@ -11,8 +11,18 @@ class S3Helper:
 
     def __init__(
         self,
+        s3_resource=None,
     ):
-        self.__s3_resource = boto3.resource('s3')
+        if s3_resource is None:
+            self.__s3_resource = boto3.resource('s3')
+        else:
+            type_str = str(type(s3_resource))
+            expected_type_str = "<class 'boto3.resources.factory.s3.ServiceResource'>"
+            if type_str != expected_type_str:
+                raise RuntimeError(f'The provided s3_resource variable is not of the expected type (expected "{type_str}", received "{expected_type_str}").')
+
+            self.__s3_resource = s3_resource
+
         self.__s3_object_hash_field = 'x-amz-meta-object-hash'
 
 
