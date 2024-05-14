@@ -1,10 +1,10 @@
 
-from .s3.s3_helper import (
-    S3Helper,
+from .s3_plus import (
+    S3Plus,
 )
 
-from .dynamo.dynamo_helper import (
-    DynamoHelper,
+from .dynamo_plus import (
+    DynamoPlus,
 )
 
 from .helpers import (
@@ -13,7 +13,6 @@ from .helpers import (
     get_local_file_hash,
     create_textfile,
     get_textfile_content,
-    get_bucket_and_key_from_s3_uri,
     get_filepaths_in_directory,
     is_windows_filepath,
     is_posix_filepath,

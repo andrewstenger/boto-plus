@@ -7,7 +7,7 @@ import botocore
 import boto_plus
 
 
-class S3Helper:
+class S3Plus:
 
     def __init__(
         self,
@@ -807,7 +807,7 @@ class S3Helper:
 
 
 if __name__ == '__main__':
-    s3_helper = boto_plus.S3Helper()
+    s3_helper = boto_plus.S3Plus()
     s3_helper.list_objects(
         bucket='astenger-test',
         prefix='sync-test/'
