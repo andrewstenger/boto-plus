@@ -26,7 +26,8 @@
 - `get_object_creation_datetime(bucket: str, key: str)`
 - `get_object_hash(bucket: str, key: str)`
 - `get_object_metadata(bucket: str, key: str)`
-
+- `get_bucket_and_key_from_uri(uri: str)`
+- `get_prefix_from_key(key: str)`
 
 ### To-Do
 - create `delete_all_versions_of_all_objects_at_prefix()`

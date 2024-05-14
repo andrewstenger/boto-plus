@@ -752,7 +752,25 @@ class S3Helper:
             raise RuntimeError(f'Provided S3 object "s3://{bucket}/{key}" does not exist.')
 
 
-    # helpers to unpack dictionary-records for multiprocessing
+    def get_bucket_and_key_from_uri(
+        self,
+        uri: str,
+    ) -> tuple:
+        bucket = uri.replace('s3://', '').split('/')[0]
+        key    = '/'.join(uri.replace('s3://', '').split('/')[1:])
+
+        return bucket, key
+
+
+    def get_prefix_from_key(
+        self, 
+        key: str,
+    ) -> str:
+        prefix = posixpath.dirname(key)
+        return prefix
+
+
+    ### helpers to unpack dictionary-records for multiprocessing ###
     def __download_object_mp_unpack(
         self,
         payload: dict,
@@ -791,6 +809,6 @@ class S3Helper:
 if __name__ == '__main__':
     s3_helper = boto_plus.S3Helper()
     s3_helper.list_objects(
-        bucket='loni-data-curated-20230501',
-        prefix='ppmi_500/dataset_metadata/'
+        bucket='astenger-test',
+        prefix='sync-test/'
     )
