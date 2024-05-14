@@ -4,15 +4,6 @@ import hashlib
 import boto_plus
 
 
-def get_bucket_and_key_from_s3_uri(
-    uri: str,
-):
-    bucket = uri.replace('s3://', '').split('/')[0]
-    key    = '/'.join(uri.replace('s3://', '').split('/')[1:])
-
-    return bucket, key
-
-
 def get_filepaths_in_directory(
     local_directory: str,
     recursive=False,
