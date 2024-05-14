@@ -32,7 +32,7 @@ class TestBotoPlus(unittest.TestCase):
         s3.put_object(Bucket=mock_bucket, Key='path/to/another/file.txt', Body='test-content-2')
         s3.put_object(Bucket=mock_bucket, Key='test.jpg')
 
-        s3_helper = boto_plus.S3Helper()
+        s3_helper = boto_plus.S3Plus()
 
         # test 1 -- general test of provided prefix
         objects = s3_helper.list_objects(bucket=mock_bucket, prefix='path/')
@@ -63,7 +63,7 @@ class TestBotoPlus(unittest.TestCase):
             content=mock_content,
         )
 
-        s3_helper = boto_plus.S3Helper()
+        s3_helper = boto_plus.S3Plus()
 
         # test 1 -- assert object and content are uploaded
         s3_helper.upload_object(
@@ -104,7 +104,7 @@ class TestBotoPlus(unittest.TestCase):
         s3.meta.client.create_bucket(Bucket=mock_bucket)
         s3.meta.client.put_object(Bucket=mock_bucket, Key=source_mock_key, Body=mock_content, Metadata={'x-amz-meta-object-hash' : 'abc123'})
 
-        s3_helper = boto_plus.S3Helper()
+        s3_helper = boto_plus.S3Plus()
 
         s3_helper.copy_object(
             source_bucket=mock_bucket,
@@ -137,7 +137,7 @@ class TestBotoPlus(unittest.TestCase):
         s3.meta.client.create_bucket(Bucket=mock_bucket)
         s3.meta.client.put_object(Bucket=mock_bucket, Key=source_mock_key, Body=mock_content, Metadata={'x-amz-meta-object-hash' : 'abc123'})
 
-        s3_helper = boto_plus.S3Helper()
+        s3_helper = boto_plus.S3Plus()
 
         s3_helper.move_object(
             source_bucket=mock_bucket,
@@ -175,7 +175,7 @@ class TestBotoPlus(unittest.TestCase):
         s3.meta.client.create_bucket(Bucket=mock_bucket)
         s3.meta.client.put_object(Bucket=mock_bucket, Key=mock_key, Body=mock_content, Metadata={'x-amz-meta-object-hash' : 'abc123'})
 
-        s3_helper = boto_plus.S3Helper()
+        s3_helper = boto_plus.S3Plus()
 
         s3_helper.delete_object(
             bucket=mock_bucket,
@@ -201,7 +201,7 @@ class TestBotoPlus(unittest.TestCase):
         mock_bucket = 'test-bucket'
 
         s3.meta.client.create_bucket(Bucket=mock_bucket)
-        s3_helper = boto_plus.S3Helper()
+        s3_helper = boto_plus.S3Plus()
 
         s3.meta.client.put_object(Bucket=mock_bucket, Key='s3-to-s3/inputs/subjects/1001/metadata/1001-metadata.csv', Body='column1\nvalue', Metadata={'x-amz-meta-object-hash' : 'abc123'})
         s3.meta.client.put_object(Bucket=mock_bucket, Key='s3-to-s3/inputs/subjects/1002/metadata/1002-metadata.csv', Body='column1\nvalue', Metadata={'x-amz-meta-object-hash' : 'def456'})
@@ -239,7 +239,7 @@ class TestBotoPlus(unittest.TestCase):
         mock_bucket = 'test-bucket'
 
         s3.create_bucket(Bucket=mock_bucket)
-        s3_helper = boto_plus.S3Helper()
+        s3_helper = boto_plus.S3Plus()
 
         s3.meta.client.put_object(Bucket=mock_bucket, Key='s3-to-local/inputs/subjects/1001/metadata/1001-metadata.csv', Body='column1\nvalue', Metadata={'x-amz-meta-object-hash' : 'abc123'})
         s3.meta.client.put_object(Bucket=mock_bucket, Key='s3-to-local/inputs/subjects/1002/metadata/1002-metadata.csv', Body='column2\nvalue', Metadata={'x-amz-meta-object-hash' : 'def456'})
@@ -278,7 +278,7 @@ class TestBotoPlus(unittest.TestCase):
         mock_bucket = 'test-bucket'
 
         s3.meta.client.create_bucket(Bucket=mock_bucket)
-        s3_helper = boto_plus.S3Helper()
+        s3_helper = boto_plus.S3Plus()
 
         os.makedirs('data/local-to-s3/local-inputs/subject/1001/', exist_ok=False)
         os.makedirs('data/local-to-s3/local-inputs/subject/1002/nested/', exist_ok=False)

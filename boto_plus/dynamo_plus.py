@@ -2,7 +2,7 @@ import boto3
 import botocore
 
 
-class DynamoHelper:
+class DynamoPlus:
 
     def __init__(
         self,

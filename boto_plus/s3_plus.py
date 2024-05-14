@@ -7,7 +7,7 @@ import botocore
 import boto_plus
 
 
-class S3Helper:
+class S3Plus:
 
     def __init__(
         self,
@@ -431,8 +431,8 @@ class S3Helper:
         # run in parallel with multiprocessing
         if use_multiprocessing:
             if sync_type == 's3-to-s3':
-                source_bucket, source_prefix = boto_plus.get_bucket_and_key_from_s3_uri(source)
-                target_bucket, target_prefix = boto_plus.get_bucket_and_key_from_s3_uri(target)
+                source_bucket, source_prefix = self.get_bucket_and_key_from_uri(source)
+                target_bucket, target_prefix = self.get_bucket_and_key_from_uri(target)
                 source_keys = self.list_objects(bucket=source_bucket, prefix=source_prefix)
                 payloads = [
                     {
@@ -454,7 +454,7 @@ class S3Helper:
                     recursive=True,
                 )
 
-                target_bucket, target_prefix = boto_plus.get_bucket_and_key_from_s3_uri(target)
+                target_bucket, target_prefix = self.get_bucket_and_key_from_uri(target)
                 payloads = [
                     {
                         'source-directory' : source,
@@ -470,7 +470,7 @@ class S3Helper:
 
             elif sync_type == 's3-to-local':
                 os.makedirs(target, exist_ok=True)
-                source_bucket, source_prefix = boto_plus.get_bucket_and_key_from_s3_uri(source)
+                source_bucket, source_prefix = self.get_bucket_and_key_from_uri(source)
                 source_keys = self.list_objects(bucket=source_bucket, prefix=source_prefix)
                 payloads = [
                     {
@@ -491,8 +491,8 @@ class S3Helper:
         # run sequentially
         else:
             if sync_type == 's3-to-s3':
-                source_bucket, source_prefix = boto_plus.get_bucket_and_key_from_s3_uri(source)
-                target_bucket, target_prefix = boto_plus.get_bucket_and_key_from_s3_uri(target)
+                source_bucket, source_prefix = self.get_bucket_and_key_from_uri(source)
+                target_bucket, target_prefix = self.get_bucket_and_key_from_uri(target)
                 source_keys = self.list_objects(bucket=source_bucket, prefix=source_prefix)
 
                 for source_key in source_keys:
@@ -508,7 +508,7 @@ class S3Helper:
                     })
 
             elif sync_type == 'local-to-s3':
-                target_bucket, target_prefix = boto_plus.get_bucket_and_key_from_s3_uri(target)
+                target_bucket, target_prefix = self.get_bucket_and_key_from_uri(target)
                 source_filepaths = boto_plus.get_filepaths_in_directory(
                     local_directory=source,
                     recursive=True,
@@ -527,7 +527,7 @@ class S3Helper:
 
             elif sync_type == 's3-to-local':
                 os.makedirs(target, exist_ok=True)
-                source_bucket, source_prefix = boto_plus.get_bucket_and_key_from_s3_uri(source)
+                source_bucket, source_prefix = self.get_bucket_and_key_from_uri(source)
                 source_keys = self.list_objects(bucket=source_bucket, prefix=source_prefix)
                 for source_key in source_keys:
                     self.__sync_item({
@@ -807,7 +807,7 @@ class S3Helper:
 
 
 if __name__ == '__main__':
-    s3_helper = boto_plus.S3Helper()
+    s3_helper = boto_plus.S3Plus()
     s3_helper.list_objects(
         bucket='astenger-test',
         prefix='sync-test/'
