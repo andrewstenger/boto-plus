@@ -431,8 +431,8 @@ class S3Plus:
         # run in parallel with multiprocessing
         if use_multiprocessing:
             if sync_type == 's3-to-s3':
-                source_bucket, source_prefix = boto_plus.get_bucket_and_key_from_s3_uri(source)
-                target_bucket, target_prefix = boto_plus.get_bucket_and_key_from_s3_uri(target)
+                source_bucket, source_prefix = self.get_bucket_and_key_from_uri(source)
+                target_bucket, target_prefix = self.get_bucket_and_key_from_uri(target)
                 source_keys = self.list_objects(bucket=source_bucket, prefix=source_prefix)
                 payloads = [
                     {
@@ -454,7 +454,7 @@ class S3Plus:
                     recursive=True,
                 )
 
-                target_bucket, target_prefix = boto_plus.get_bucket_and_key_from_s3_uri(target)
+                target_bucket, target_prefix = self.get_bucket_and_key_from_uri(target)
                 payloads = [
                     {
                         'source-directory' : source,
@@ -470,7 +470,7 @@ class S3Plus:
 
             elif sync_type == 's3-to-local':
                 os.makedirs(target, exist_ok=True)
-                source_bucket, source_prefix = boto_plus.get_bucket_and_key_from_s3_uri(source)
+                source_bucket, source_prefix = self.get_bucket_and_key_from_uri(source)
                 source_keys = self.list_objects(bucket=source_bucket, prefix=source_prefix)
                 payloads = [
                     {
