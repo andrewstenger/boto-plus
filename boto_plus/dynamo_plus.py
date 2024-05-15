@@ -6,16 +6,13 @@ class DynamoPlus:
 
     def __init__(
         self,
-        dynamo_resource=None,
-        region=None,
+        boto_config,
+        boto_session=None,
     ):
-        if dynamo_resource is not None and region is not None:
-            raise RuntimeError('Only one of "dynamo_resource", "region" can be provided (received both).')
-
-        if dynamo_resource is None:
-            self.__dynamo_resource = boto3.resource('dynamodb', region_name=region)
+        if boto_session is not None:
+            self.__dynamo_resource = boto_session.resource('dynamodb', config=boto_config)
         else:
-            self.__dynamo_resource = dynamo_resource
+            self.__dynamo_resource = boto3.resource('dynamodb', config=boto_config)
 
 
     def does_table_exist(
