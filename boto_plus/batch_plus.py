@@ -36,8 +36,8 @@ class BatchPlus:
         total_seconds = total.total_seconds()
 
         payload = {
-            'start' : start,
-            'stop'  : stop,
+            'start' : start.strftime("%Y-%m-%d %H:%M:%S"),
+            'stop'  : stop.strftime("%Y-%m-%d %H:%M:%S"),
             'total-seconds' : total_seconds,
         }
 
