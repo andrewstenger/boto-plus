@@ -29,8 +29,8 @@ class BatchPlus:
 
         job_info = response['jobs'][0]
 
-        start = __convert_unix_timestamp_to_utc(job_info['startedAt'])
-        stop  = __convert_unix_timestamp_to_utc(job_info['stoppedAt'])
+        start = dt.datetime.fromtimestamp(job_info['startedAt'] / 1000, tz=dt.timezone.utc)
+        stop  = dt.datetime.fromtimestamp(job_info['stoppedAt'] / 1000, tz=dt.timezone.utc)
         total = stop - start
 
         total_seconds = total.total_seconds()
@@ -42,10 +42,3 @@ class BatchPlus:
         }
 
         return payload
-
-
-# helpers
-def __convert_unix_timestamp_to_utc(timestamp: int):
-    seconds = timestamp / 1000
-    utc_ts  = dt.datetime.fromtimestamp(seconds, tz=dt.timezone.utc)
-    return utc_ts
