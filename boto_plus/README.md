@@ -1,3 +1,9 @@
+## BatchPlus -- Public Functions
+- `get_runtime_from_batch_job(job_id: str)`
+
+## DynamoPlus -- Public Functions
+- `does_table_exist(table_name: str)`
+
 ## S3Plus -- Public Functions
 - `list_objects(bucket: str, prefix: str, filter='')`
 - `list_all_versions_of_object(bucket: str, key: str)`
@@ -28,9 +34,6 @@
 - `get_object_metadata(bucket: str, key: str)`
 - `get_bucket_and_key_from_uri(uri: str)`
 - `get_prefix_from_key(key: str)`
-
-## DynamoPlus -- Public Functions
-- `does_table_exist(table_name: str)`
 
 ### To-Do
 - create `delete_all_versions_of_all_objects_at_prefix()`
