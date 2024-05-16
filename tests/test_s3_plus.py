@@ -8,7 +8,7 @@ import shutil
 import boto_plus
 
 
-class TestBotoPlus(unittest.TestCase):
+class TestS3Plus(unittest.TestCase):
 
     def setUp(self):
         self.region = 'us-east-1'

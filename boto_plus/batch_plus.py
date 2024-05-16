@@ -1,5 +1,6 @@
 import datetime as dt
 import boto3
+import botocore
 
 import boto_plus
 
@@ -20,6 +21,7 @@ class BatchPlus:
     def get_runtime_from_batch_job(
         self,
         job_id: str,
+        convert_datetime_to_string=False,
     ) -> dict:
         response = self.__batch_client.describe_jobs(
             jobs=[
@@ -30,15 +32,31 @@ class BatchPlus:
         job_info = response['jobs'][0]
 
         start = dt.datetime.fromtimestamp(job_info['startedAt'] / 1000, tz=dt.timezone.utc)
-        stop  = dt.datetime.fromtimestamp(job_info['stoppedAt'] / 1000, tz=dt.timezone.utc)
+        stop = dt.datetime.fromtimestamp(job_info['stoppedAt'] / 1000, tz=dt.timezone.utc)
         total = stop - start
 
         total_seconds = total.total_seconds()
 
+        if convert_datetime_to_string:
+            dt_format = '%Y-%m-%d %H:%M:%S.%f'
+            start = start.strftime(dt_format)
+            stop  = stop.strftime(dt_format)
+            total_seconds = str(total_seconds)
+
         payload = {
-            'start' : start.strftime("%Y-%m-%d %H:%M:%S"),
-            'stop'  : stop.strftime("%Y-%m-%d %H:%M:%S"),
+            'start' : start,
+            'stop' : stop,
             'total-seconds' : total_seconds,
         }
 
         return payload
+
+
+
+if __name__ == '__main__':
+    config = botocore.config.Config(region_name='us-east-1')
+    session = boto3.session.Session()
+    bp = BatchPlus(boto_config=config, boto_session=session)
+
+    bp.get_runtime_from_batch_job(job_id='9ec5c9e9-60cc-40a5-b319-9d24616bb124')
+
