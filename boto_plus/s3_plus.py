@@ -14,6 +14,9 @@ class S3Plus:
         boto_config,
         boto_session=None,
     ):
+        self.__boto_config = boto_config
+        self.__boto_session = boto_session
+
         if boto_session is not None:
             self.__s3_resource = boto_session.resource('s3', config=boto_config)
         else:
@@ -66,38 +69,6 @@ class S3Plus:
         return versions
 
 
-    ### copy ###
-    def copy_object(
-        self,
-        source_bucket: str,
-        source_key: str,
-        target_bucket: str,
-        target_key: str,
-        dryrun=True,
-        verbose=True,
-    ) -> str:
-        if verbose:
-            prefix = '(dryrun)' if dryrun else ''
-            source_uri = f's3://{source_bucket}/{source_key}'
-            target_uri = f's3://{target_bucket}/{target_key}'
-            print(f'{prefix} Copying {source_uri} to {target_uri}...')
-
-        if not dryrun:
-            copy_source = {
-                'Bucket' : source_bucket,
-                'Key'    : source_key,
-            }
-
-            self.__s3_resource.meta.client.copy(
-                CopySource=copy_source, 
-                Bucket=target_bucket, 
-                Key=target_key,
-            )
-
-        uri = f's3://{target_bucket}/{target_key}'
-        return uri
-
-
     def copy_objects(
         self,
         payloads: list[dict],
@@ -107,17 +78,30 @@ class S3Plus:
     ) -> list[str]:
         if use_multiprocessing:
             for p in payloads:
-                p['dryrun']  = dryrun
+                # attach session info, also dryrun/verbose
+                # if we need to refresh, that can be done within the MP function, using the 
+                # pickled credentials
+                credentials = self.__boto_session.get_credentials()
+                p['credentials'] = credentials
+                #p['aws_access_key_id'] = credentials.access_key
+                #p['aws_secret_access_key'] = credentials.secret_key
+                #p['aws_session_token'] = credentials.token
+                p['region_name'] = self.__boto_session.region_name
+                p['profile_name'] = self.__boto_session.profile_name
+                p['dryrun'] = dryrun
                 p['verbose'] = verbose
 
             with mp.Pool() as pool:
-                uris = pool.map(self.__copy_object_mp_unpack, payloads)
+                uris = pool.map(__helper_copy_object, payloads)
 
         else:
             uris = list()
-            for payload in payloads:
-                s3_uri = self.copy_object(**payload, dryrun=dryrun, verbose=verbose)
-                uris.append(s3_uri)
+            for p in payloads:
+                # refresh credentials 
+                # ...
+                p['s3_resource'] = self.__s3_resource
+                uri = __helper_copy_object(p)
+                uris.append(uri)
 
         return uris
 
@@ -481,8 +465,10 @@ class S3Plus:
                     for key in source_keys
                 ]
 
+            #with mp.Pool() as pool:
+            #    pool.map(self.__sync_item, payloads)
             with mp.Pool() as pool:
-                pool.map(self.__sync_item, payloads)
+                pool.map(__mp_sync_item, payloads)
 
         # run sequentially
         else:
@@ -802,9 +788,139 @@ class S3Plus:
         return self.upload_object(**payload)
 
 
+def __helper_copy_object(
+    payload,
+):
+    if 's3_resource' in payload:
+        s3_resource = payload['s3_resource']
+    else:
+        # get session info, make new one
+        session = boto3.session.Session(
+            aws_access_key_id=payload['aws_access_key_id'],
+            aws_secret_access_key=payload['aws_secret_access_key'],
+            aws_session_token=payload['aws_session_token'],
+            region_name=payload['region_name'],
+            profile_name=payload['profile_name'],
+        )
+
+        s3_resource = session.resource('s3', config=payload['boto_config'])
+
+    # copy code goes here
+    verbose = payload['verbose']
+    dryrun  = payload['dryrun']
+
+    source_bucket = payload['source_bucket']
+    source_key    = payload['source_key']
+
+    target_bucket = payload['target_bucket']
+    target_key    = payload['target_key']
+
+    if verbose:
+        prefix = '(dryrun)' if dryrun else ''
+        source_uri = f's3://{source_bucket}/{source_key}'
+        target_uri = f's3://{target_bucket}/{target_key}'
+        print(f'{prefix} Copying {source_uri} to {target_uri}...')
+
+    if not dryrun:
+        copy_source = {
+            'Bucket' : source_bucket,
+            'Key'    : source_key,
+        }
+
+        s3_resource.meta.client.copy(
+            CopySource=copy_source, 
+            Bucket=target_bucket, 
+            Key=target_key,
+        )
+
+    uri = f's3://{target_bucket}/{target_key}'
+    return uri
+
+"""
+class S3PlusMP:
+
+    def __init__(
+        self, 
+        boto_config,
+        boto_session=None,
+    ):
+        self.__boto_config = boto_config
+        if boto_session is None:
+            self.__session_params = dict()
+
+        else:
+            credentials = boto_session.get_credentials()
+
+            self.__session_params = {
+                'aws_access_key_id' : credentials.access_key,
+                'aws_secret_access_key' : credentials.secret_key,
+                'aws_session_token' : credentials.token,
+                'region_name' : boto_session.region_name,
+                'profile_name' : boto_session.profile_name,
+            }
+
+
+    def copy_object_mp(
+        self,
+        payload,
+    ):
+        if len(self.__session_params) == 0:
+            session = boto3.session.Session()
+        else:
+            session = boto3.session.Session(**self.__session_params)
+
+        s3 = session.resource('s3', config=self.__boto_config)
+
+        verbose = payload['verbose']
+        dryrun  = payload['dryrun']
+
+        source_bucket = payload['source_bucket']
+        source_key    = payload['source_key']
+
+        target_bucket = payload['target_bucket']
+        target_key    = payload['target_key']
+
+        if verbose:
+            prefix = '(dryrun)' if dryrun else ''
+            source_uri = f's3://{source_bucket}/{source_key}'
+            target_uri = f's3://{target_bucket}/{target_key}'
+            print(f'{prefix} Copying {source_uri} to {target_uri}...')
+
+        if not dryrun:
+            copy_source = {
+                'Bucket' : source_bucket,
+                'Key'    : source_key,
+            }
+
+            s3.meta.client.copy(
+                CopySource=copy_source, 
+                Bucket=target_bucket, 
+                Key=target_key,
+            )
+
+        uri = f's3://{target_bucket}/{target_key}'
+        return uri
+"""
+
+
 if __name__ == '__main__':
-    s3_helper = boto_plus.S3Plus()
-    s3_helper.list_objects(
-        bucket='astenger-test',
-        prefix='sync-test/'
+    config = botocore.config.Config(region_name='us-east-1')
+    s3_helper = boto_plus.S3Plus(boto_config=config)
+    payloads = [
+        {
+            'source_bucket' : 'astenger-test',
+            'source_key' : 'mp-test/inputs/test.txt',
+            'target_bucket' : 'astenger-test',
+            'target_key' : 'mp-test/outputs/test.txt'
+        },
+        {
+            'source_bucket' : 'astenger-test',
+            'source_key' : 'mp-test/inputs/nested/test2.txt',
+            'target_bucket' : 'astenger-test',
+            'target_key' : 'mp-test/outputs/nested/test2.txt'
+        },
+    ]
+    s3_helper.copy_objects(
+        payloads,
+        use_multiprocessing=True
     )
