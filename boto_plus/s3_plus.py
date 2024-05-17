@@ -562,7 +562,7 @@ class S3Plus:
             target_bucket = payload['target-bucket']
             target_prefix = payload['target-prefix']
 
-            partial_target_key = source_key.replace(source_prefix, '')
+            partial_target_key = source_key.replace(source_prefix, '').lstrip('/')
             target_key = posixpath.join(target_prefix, partial_target_key)
 
             if self.does_object_exist(bucket=source_bucket, key=source_key):
@@ -594,14 +594,14 @@ class S3Plus:
             target_bucket    = payload['target-bucket']
             target_prefix    = payload['target-prefix']
 
-            filepath_no_prefix = source_filepath.replace(source_directory, '')
+            filepath_no_prefix = source_filepath.replace(source_directory, '').lstrip('/')
             partial_key = boto_plus.convert_filepath_to_posix(filepath_no_prefix)
             target_key  = posixpath.join(target_prefix, partial_key)
 
             if os.path.isfile(source_filepath):
                 source_local_file_hash = boto_plus.get_local_file_hash(source_filepath)
             else:
-                raise RuntimeError(f'The provided S3 object does not exist: "{source_filepath}"')
+                raise RuntimeError(f'The provided file does not exist: "{source_filepath}"')
 
             if self.does_object_exist(bucket=target_bucket, key=target_key):
                 target_object_hash = self.get_object_hash(bucket=target_bucket, key=target_key)
@@ -625,7 +625,7 @@ class S3Plus:
             source_key    = payload['source-key']
             target_directory = payload['target-directory']
 
-            partial_target_filepath = source_key.replace(source_prefix, '')
+            partial_target_filepath = source_key.replace(source_prefix, '').lstrip('/')
 
             if boto_plus.is_windows_filepath(target_directory):
                 partial_target_filepath = boto_plus.convert_filepath_to_windows(partial_target_filepath)
