@@ -233,7 +233,7 @@ class TestS3Plus(unittest.TestCase):
         source = f's3://{mock_bucket}/s3-to-s3/inputs/'
         target = f's3://{mock_bucket}/s3-to-s3/outputs/'
 
-        s3_plus.sync(
+        uris = s3_plus.sync(
             source=source,
             target=target,
             use_multiprocessing=False,
@@ -250,6 +250,11 @@ class TestS3Plus(unittest.TestCase):
 
         s3_object = s3.Object(bucket_name=mock_bucket, key='s3-to-s3/outputs/subjects/10002/data/10001-image.nii')
         self.assertEqual(s3_object.metadata['x-amz-meta-object-hash'], 'ghi789')
+
+        # returned uris are as-expected
+        self.assertIn(f's3://{mock_bucket}/s3-to-s3/outputs/subjects/1001/metadata/1001-metadata.csv', uris)
+        self.assertIn(f's3://{mock_bucket}/s3-to-s3/outputs/subjects/1002/metadata/1002-metadata.csv', uris)
+        self.assertIn(f's3://{mock_bucket}/s3-to-s3/outputs/subjects/10002/data/10001-image.nii', uris)
 
 
     @moto.mock_aws
@@ -272,7 +277,7 @@ class TestS3Plus(unittest.TestCase):
         s3.meta.client.put_object(Bucket=mock_bucket, Key='s3-to-local/inputs/subjects/1002/metadata/1002-metadata.csv', Body='column2\nvalue', Metadata={'x-amz-meta-object-hash' : 'def456'})
         s3.meta.client.put_object(Bucket=mock_bucket, Key='s3-to-local/inputs/subjects/1002/data/1002.txt', Body='test-1002', Metadata={'x-amz-meta-object-hash' : 'ghi789'})
 
-        s3_plus.sync(
+        filepaths = s3_plus.sync(
             source=f's3://{mock_bucket}/s3-to-local/inputs/',
             target=f'data/s3-to-local/local-outputs/',
             use_multiprocessing=False,
@@ -291,6 +296,11 @@ class TestS3Plus(unittest.TestCase):
         path = 'data/s3-to-local/local-outputs/subjects/1002/data/1002.txt'
         self.assertTrue(os.path.isfile(path))
         self.assertEqual(boto_plus.get_textfile_content(path), 'test-1002')
+
+        # returned filepaths are as-expected
+        self.assertIn('data/s3-to-local/local-outputs/subjects/1001/metadata/1001-metadata.csv', filepaths)
+        self.assertIn('data/s3-to-local/local-outputs/subjects/1002/metadata/1002-metadata.csv', filepaths)
+        self.assertIn('data/s3-to-local/local-outputs/subjects/1002/data/1002.txt', filepaths)
 
         shutil.rmtree('data/s3-to-local/')
 
@@ -324,7 +334,7 @@ class TestS3Plus(unittest.TestCase):
             filepath='data/local-to-s3/local-inputs/subject/1002/nested/test-file-2.txt',
         )
 
-        s3_plus.sync(
+        uris = s3_plus.sync(
             source=f'data/local-to-s3/local-inputs/',
             target=f's3://{mock_bucket}/local-to-s3/outputs/',
             use_multiprocessing=False,
@@ -339,6 +349,10 @@ class TestS3Plus(unittest.TestCase):
         s3_object = s3.Object(bucket_name=mock_bucket, key='local-to-s3/outputs/subject/1002/nested/test-file-2.txt')
         content   = s3_object.get()['Body'].read().decode('utf-8')
         self.assertEqual(content, 'this is the second test')
+
+        # returned uris are as-expected
+        self.assertIn(f's3://{mock_bucket}/local-to-s3/outputs/subject/1001/test-file-1.txt', uris)
+        self.assertIn(f's3://{mock_bucket}/local-to-s3/outputs/subject/1002/nested/test-file-2.txt', uris)
 
         shutil.rmtree('data/local-to-s3/')
 
