@@ -418,7 +418,7 @@ class S3Plus:
         use_multiprocessing=False,
         dryrun=True,
         verbose=True,
-    ):
+    ) -> list[str]:
         if not source.startswith('s3://') and not target.startswith('s3://'):
             raise RuntimeError(f'At least one of "source", "target" must be an S3 URI. (Received "{source}", "{target}")')
 
@@ -482,17 +482,19 @@ class S3Plus:
                 ]
 
             with mp.Pool() as pool:
-                pool.map(self.__sync_item, payloads)
+                output_files = pool.map(self.__sync_item, payloads)
 
         # run sequentially
         else:
+            output_files = list()
+
             if sync_type == 's3-to-s3':
                 source_bucket, source_prefix = self.get_bucket_and_key_from_uri(source)
                 target_bucket, target_prefix = self.get_bucket_and_key_from_uri(target)
                 source_keys = self.list_objects(bucket=source_bucket, prefix=source_prefix)
 
                 for source_key in source_keys:
-                    self.__sync_item({
+                    uri = self.__sync_item({
                         'sync-type'     : sync_type,
                         'source-bucket' : source_bucket,
                         'source-prefix' : source_prefix,
@@ -503,6 +505,8 @@ class S3Plus:
                         'verbose'       : verbose,
                     })
 
+                    output_files.append(uri)
+
             elif sync_type == 'local-to-s3':
                 target_bucket, target_prefix = self.get_bucket_and_key_from_uri(target)
                 source_filepaths = boto_plus.get_filepaths_in_directory(
@@ -511,7 +515,7 @@ class S3Plus:
                 )
 
                 for source_filepath in source_filepaths:
-                    self.__sync_item({
+                    uri = self.__sync_item({
                         'sync-type'        : sync_type,
                         'source-directory' : source,
                         'source-filepath'  : source_filepath,
@@ -521,12 +525,14 @@ class S3Plus:
                         'verbose'          : verbose,
                     })
 
+                    output_files.append(uri)
+
             elif sync_type == 's3-to-local':
                 os.makedirs(target, exist_ok=True)
                 source_bucket, source_prefix = self.get_bucket_and_key_from_uri(source)
                 source_keys = self.list_objects(bucket=source_bucket, prefix=source_prefix)
                 for source_key in source_keys:
-                    self.__sync_item({
+                    filepath = self.__sync_item({
                         'sync-type'        : sync_type,
                         'source-bucket'    : source_bucket,
                         'source-prefix'    : source_prefix,
@@ -536,11 +542,15 @@ class S3Plus:
                         'verbose'          : verbose,
                     })
 
+                    output_files.append(filepath)
+
+        return output_files
+
 
     def __sync_item(
         self,
         payload: dict,
-    ):
+    ) -> str:
         sync_type = payload['sync-type']
         dryrun    = payload['dryrun']
         verbose   = payload['verbose']
@@ -576,6 +586,8 @@ class S3Plus:
                     verbose=verbose,
                 )
 
+            output_file = f's3://{target_bucket}/{target_key}'
+
         elif sync_type == 'local-to-s3':
             source_directory = payload['source-directory']
             source_filepath  = payload['source-filepath']
@@ -604,6 +616,8 @@ class S3Plus:
                     dryrun=dryrun,
                     verbose=verbose,
                 )
+
+            output_file = f's3://{target_bucket}/{target_key}'
 
         elif sync_type == 's3-to-local':
             source_bucket = payload['source-bucket']
@@ -640,6 +654,10 @@ class S3Plus:
                     dryrun=dryrun,
                     verbose=verbose,
                 )
+
+            output_file = target_filepath
+
+        return output_file
 
 
     def __get_sync_type(
