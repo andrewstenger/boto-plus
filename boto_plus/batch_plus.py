@@ -29,6 +29,12 @@ class BatchPlus:
             ]
         )
 
+        # this should never happen -- so hard-fail if it does somehow
+        if len(response['jobs']) > 1:
+            error_str = f'More than one Batch jobs returned when calling "describe_jobs()" with job-id "{job_id}"'\
+                ' Please investigate further.'
+            raise RuntimeError(error_str)
+
         job_info = response['jobs'][0]
 
         start = dt.datetime.fromtimestamp(job_info['startedAt'] / 1000, tz=dt.timezone.utc)
