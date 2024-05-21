@@ -2,8 +2,6 @@ import datetime as dt
 import boto3
 import botocore
 
-import boto_plus
-
 
 class BatchPlus:
 
@@ -18,44 +16,52 @@ class BatchPlus:
             self.__batch_client = boto3.client('batch', config=boto_config)
 
 
-    def get_runtime_from_batch_job(
+    def get_runtime_of_jobs(
         self,
-        job_id: str,
+        job_ids: list[str],
         convert_datetime_to_string=False,
     ) -> dict:
-        response = self.__batch_client.describe_jobs(
-            jobs=[
-                job_id,
-            ]
-        )
+        map_job_id_to_runtimes = dict()
 
-        # this should never happen -- so hard-fail if it does somehow
-        if len(response['jobs']) > 1:
-            error_str = f'More than one Batch jobs returned when calling "describe_jobs()" with job-id "{job_id}"'\
-                ' Please investigate further.'
-            raise RuntimeError(error_str)
+        dt_format = '%Y-%m-%d %H:%M:%S.%f'
 
-        job_info = response['jobs'][0]
+        n = 100
+        start_index = 0
+        end_index = n
 
-        start = dt.datetime.fromtimestamp(job_info['startedAt'] / 1000, tz=dt.timezone.utc)
-        stop = dt.datetime.fromtimestamp(job_info['stoppedAt'] / 1000, tz=dt.timezone.utc)
-        total = stop - start
+        job_id_slice = job_ids[:n]
 
-        total_seconds = total.total_seconds()
+        while len(job_id_slice) > 0:
+            response = self.__batch_client.describe_jobs(
+                jobs=job_id_slice,
+            )
 
-        if convert_datetime_to_string:
-            dt_format = '%Y-%m-%d %H:%M:%S.%f'
-            start = start.strftime(dt_format)
-            stop  = stop.strftime(dt_format)
-            total_seconds = str(total_seconds)
+            for job_info in response['jobs']:
+                job_id = job_info['jobId']
 
-        payload = {
-            'start' : start,
-            'stop' : stop,
-            'total-seconds' : total_seconds,
-        }
+                start = dt.datetime.fromtimestamp(job_info['startedAt'] / 1000, tz=dt.timezone.utc)
+                stop = dt.datetime.fromtimestamp(job_info['stoppedAt'] / 1000, tz=dt.timezone.utc)
+                total = stop - start
 
-        return payload
+                total_seconds = total.total_seconds()
+
+                if convert_datetime_to_string:
+                    start = start.strftime(dt_format)
+                    stop  = stop.strftime(dt_format)
+                    total_seconds = str(total_seconds)
+
+                map_job_id_to_runtimes[job_id] = {
+                    'start' : start,
+                    'stop' : stop,
+                    'total-seconds' : total_seconds,
+                }
+
+            start_index += n
+            end_index   += n
+
+            job_id_slice = job_ids[start_index:end_index]
+
+        return map_job_id_to_runtimes
 
 
     def get_status_of_jobs(
