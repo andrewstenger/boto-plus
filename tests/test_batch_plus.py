@@ -1,5 +1,6 @@
 import os
 import json
+import math
 import boto3
 import botocore
 import moto
@@ -36,7 +37,7 @@ class TestBatchPlus(unittest.TestCase):
 
 
     @moto.mock_aws(config={'batch' : {'use_docker' : False}})
-    def test_get_runtime_from_batch_job(self):
+    def test_get_runtime_of_jobs(self):
         batch = boto3.client('batch', self.region)
         iam   = boto3.client('iam')
         ec2   = boto3.client('ec2', region_name=self.region)
@@ -153,7 +154,7 @@ class TestBatchPlus(unittest.TestCase):
         response = batch.submit_job(
             jobName='mock-job-1',
             jobQueue=queue_arn,
-            jobDefinition=job_def_arn
+            jobDefinition=job_def_arn,
         )
 
         job_id = response['jobId']
@@ -164,28 +165,59 @@ class TestBatchPlus(unittest.TestCase):
         )
 
         # test with datetime output
-        payload = batch_plus.get_runtime_from_batch_job(
-            job_id=job_id,
-            convert_datetime_to_string=False
+        payload = batch_plus.get_runtime_of_jobs(
+            job_ids=[job_id],
+            convert_datetime_to_string=False,
         )
 
-        del os.environ['MOTO_SIMPLE_BATCH_FAIL_AFTER']
+        job_payload = payload[job_id]
 
-        self.assertIsInstance(payload['start'], dt.datetime)
-        self.assertIsInstance(payload['stop'], dt.datetime)
+        self.assertIsInstance(job_payload['start'], dt.datetime)
+        self.assertIsInstance(job_payload['stop'], dt.datetime)
 
-        self.assertLess(payload['start'], payload['stop'])
+        self.assertLess(job_payload['start'], job_payload['stop'])
 
         # test with string output
-        payload = batch_plus.get_runtime_from_batch_job(
-            job_id=job_id,
-            convert_datetime_to_string=True
+        payload = batch_plus.get_runtime_of_jobs(
+            job_ids=[job_id],
+            convert_datetime_to_string=True,
         )
 
-        self.assertIsInstance(payload['start'], str)
-        self.assertIsInstance(payload['stop'], str)
+        job_payload = payload[job_id]
 
-        self.assertLess(payload['start'], payload['stop'])
+        self.assertIsInstance(job_payload['start'], str)
+        self.assertIsInstance(job_payload['stop'], str)
+
+        self.assertLess(job_payload['start'], job_payload['stop'])
+
+        """
+        Test submission of 101 jobs:
+        If get_runtime_of_jobs receives > 100 job ids, it must process them in batches.
+        This test asserts all job ids are processed & returned by this function.
+        This test takes 100 seconds to run, since unfortunately the smallest increment of time
+        that moto can mock a job to run for is 1 second.
+        """
+        os.environ['MOTO_SIMPLE_BATCH_FAIL_AFTER'] = '1'
+
+        job_ids = list()
+        for i in range(101):
+            response = batch.submit_job(
+                jobName=f'mock-job-{i}',
+                jobQueue=queue_arn,
+                jobDefinition=job_def_arn
+            )
+            job_ids.append(response['jobId'])
+
+        payload = batch_plus.get_runtime_of_jobs(
+            job_ids=job_ids,
+            convert_datetime_to_string=True,
+        )
+
+        for job_id, runtimes in payload.items():
+            self.assertLess(runtimes['start'], runtimes['stop'])
+            self.assertGreater(math.floor(float(runtimes['total-seconds'])), 0)
+
+        del os.environ['MOTO_SIMPLE_BATCH_FAIL_AFTER']
 
 
     @moto.mock_aws(config={'batch' : {'use_docker' : False}})
@@ -337,9 +369,11 @@ class TestBatchPlus(unittest.TestCase):
         self.assertEqual(payload[job_id1], 'FAILED')
         self.assertEqual(payload[job_id2], 'SUCCEEDED')
 
-        # test submission of 101 jobs:
-        # if get_status_of_jobs receives > 100 job ids, it must process them in batches
-        # this test asserts all job ids are processed & returned by this function
+        """
+        Test submission of 101 jobs:
+        If get_runtime_of_jobs receives > 100 job ids, it must process them in batches.
+        This test asserts all job ids are processed & returned by this function.
+        """
         os.environ['MOTO_SIMPLE_BATCH_FAIL_AFTER'] = '0'
 
         map_job_id_to_status = dict()
@@ -356,6 +390,8 @@ class TestBatchPlus(unittest.TestCase):
         )
 
         self.assertEqual(payload, map_job_id_to_status)
+
+        del os.environ['MOTO_SIMPLE_BATCH_FAIL_AFTER']
 
 
 if __name__ == "__main__":
