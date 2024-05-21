@@ -58,6 +58,38 @@ class BatchPlus:
         return payload
 
 
+    def get_status_of_jobs(
+        self,
+        job_ids: list[str],
+    ) -> dict:
+        map_job_id_to_status = dict()
+
+        n = 100
+        start_index = 0
+        end_index = n
+
+        job_id_slice = job_ids[:n]
+
+        while len(job_id_slice) > 0:
+            response = self.__batch_client.describe_jobs(
+                jobs=job_id_slice,
+            )
+
+            if 'jobs' not in response:
+                raise RuntimeError(f'No metadata found for Batch jobs "{job_id_slice}".')
+
+            for job_info in response['jobs']:
+                job_id = job_info['jobId']
+                status = job_info['status']
+                map_job_id_to_status[job_id] = status
+
+            start_index += n
+            end_index   += n
+
+            job_id_slice = job_ids[start_index:end_index]
+        
+        return map_job_id_to_status
+
 
 if __name__ == '__main__':
     config = botocore.config.Config(region_name='us-east-1')
