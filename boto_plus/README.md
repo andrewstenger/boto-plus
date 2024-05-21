@@ -1,5 +1,6 @@
 ## BatchPlus -- Public Functions
 - `get_runtime_from_batch_job(job_id: str)`
+- `get_status_of_jobs(job_ids: list[str])`
 
 ## DynamoPlus -- Public Functions
 - `does_table_exist(table_name: str)`
