@@ -11,9 +11,9 @@ from .s3_plus import (
     S3Plus,
 )
 
-#from .sso_plus import (
-#    SSOPlus,
-#)
+from .step_function_plus import (
+    StepFunctionPlus,
+)
 
 from .helpers import (
     convert_filepath_to_posix,
