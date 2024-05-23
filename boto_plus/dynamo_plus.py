@@ -44,6 +44,7 @@ class DynamoPlus:
             }
         )
 
+        item = dict()
         if 'Item' in response:
             item = response['Item']
 
@@ -65,6 +66,7 @@ class DynamoPlus:
             }
         )
 
+        item = dict()
         if 'Item' in response:
             item = response['Item']
 
@@ -85,12 +87,9 @@ class DynamoPlus:
             FilterExpression=boto3.dynamodb.conditions.Attr(attribute).eq(attribute_value)
         )
 
+        items = list()
         if 'Items' in response and len(response['Items']) > 0:
             items = response['Items']
-        else:
-            error_str = f'No records found for attribute {attribute} = "{attribute_value}" ' \
-                f'in Dynamo table "{dynamo_table}".'
-            raise RuntimeError(error_str)
 
         return items
 
@@ -103,3 +102,63 @@ class DynamoPlus:
         self.__dynamo_resource.Table(dynamo_table).put_item(
             Item=record,
         )
+
+
+    def delete_record_with_primary_key_from_table(
+        self,
+        pk: str,
+        pk_value: any,
+        dynamo_table: str,
+    ) -> dict:
+        response = self.__dynamo_resource.Table(dynamo_table).delete_item(
+            Key={
+                pk : pk_value,
+            }
+        )
+
+        return response
+
+
+    def delete_record_with_composite_key_from_table(
+        self,
+        pk: str,
+        pk_value: any,
+        sk: str,
+        sk_value: any,
+        dynamo_table: str,
+    ) -> dict:
+        response = self.__dynamo_resource.Table(dynamo_table).delete_item(
+            Key={
+                pk : pk_value,
+                sk : sk_value,
+            }
+        )
+
+        return response
+
+
+    def delete_records_with_attribute_from_table(
+        self,
+        attribute: str,
+        attribute_value: any,
+        pk: str,
+        dynamo_table: str,
+        sk=None,
+    ) -> dict:
+        table = self.__dynamo_resource.Table(dynamo_table)
+
+        scan_response = self.__dynamo_resource.Table(dynamo_table).scan(
+            FilterExpression=boto3.dynamodb.conditions.Attr(attribute).eq(attribute_value)
+        )
+
+        for item in scan_response['Items']:
+            key = {
+                pk : item[pk],
+            }
+
+            if sk is not None:
+                key[sk] = item[sk]
+
+            table.delete_item(
+                Key=key,
+            )

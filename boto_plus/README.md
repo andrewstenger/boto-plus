@@ -8,6 +8,9 @@
 - `get_record_with_composite_key_from_table(primary_key: str, primary_key_value: any, secondary_key: str, secondary_key_value: any, dynamo_table: str)`
 - `get_records_with_attribute_from_table(attribute: str, attribute_value: any, dynamo_table: str)`
 - `put_record_in_table(record: dict, dynamo_table: str)`
+- `delete_record_with_primary_key_from_table(pk: str, pk_value: any, dynamo_table: str)`
+- `delete_record_with_composite_key_from_table(pk: str, pk_value: any, sk: str, sk_value: any, dynamo_table: str)`
+- `delete_records_with_attribute_from_table(attribute: str, attribute_value: any, pk: str, dynamo_table: str, sk=None)`
 
 ## S3Plus -- Public Functions
 - `list_objects(bucket: str, prefix: str, filter='')`
