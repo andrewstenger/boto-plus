@@ -12,6 +12,11 @@
 - `delete_record_with_composite_key_from_table(pk: str, pk_value: any, sk: str, sk_value: any, dynamo_table: str)`
 - `delete_records_with_attribute_from_table(attribute: str, attribute_value: any, pk: str, dynamo_table: str, sk=None)`
 
+## StepFunctionPlus -- Public Functions
+- `does_state_machine_exist(name: str, version=None)`
+- `execute_state_machine(name: str, input: dict, execution_name=None, version=None, trace_header=None)`
+- `list_state_machines()`
+
 ## S3Plus -- Public Functions
 - `list_objects(bucket: str, prefix: str, filter='')`
 - `list_all_versions_of_object(bucket: str, key: str)`
