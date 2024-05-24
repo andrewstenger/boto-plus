@@ -22,7 +22,7 @@ Wrapper library to make it easier to use the boto3 Python library. Work is in pr
 - `list_state_machines(name_only=False, arn_only=False)`
 - `describe_state_machine(name: str, version=None)`
 - `list_state_machine_versions(name: str, arn_only=False, version_only=False)`
-- `create_state_machine(name: str, definition: str, parse_definition_from_filepath: bool, role_arn: str, type='STANDARD', log_level='ALL', log_execution_data=True, log_group_arn=None, enable_tracing=True, publish=True, version_description=None, tags=None)`
+- `create_state_machine(name: str, definition: str, parse_definition_from_filepath: bool, role_arn: str, type='STANDARD', log_level='OFF', log_execution_data=False, log_group_arn=None, enable_tracing=True, publish=True, version_description=None, tags=None)`
 - `create_state_machine_arn(name: str, version=None)`
 
 ### S3Plus -- Public Functions
