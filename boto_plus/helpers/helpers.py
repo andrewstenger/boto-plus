@@ -1,13 +1,12 @@
 import os
+import json
 import hashlib
-
-import boto_plus
 
 
 def get_filepaths_in_directory(
     local_directory: str,
     recursive=False,
-):
+) -> list[str]:
     if recursive:
         filepaths = [os.path.join(root, filename) for root, dirs, files in os.walk(local_directory) for filename in files]
     else:
@@ -18,7 +17,7 @@ def get_filepaths_in_directory(
 
 def is_windows_filepath(
     filepath: str,
-):
+) -> bool:
     if '\\' in filepath:
         return True
     else:
@@ -27,7 +26,7 @@ def is_windows_filepath(
 
 def is_posix_filepath(
     filepath: str,
-):
+) -> bool:
     if '/' in filepath:
         return True
     else:
@@ -36,7 +35,7 @@ def is_posix_filepath(
 
 def convert_filepath_to_posix(
     filepath: str,
-):
+) -> str:
     # Windows filepath provided
     if '\\' in filepath:
         # drive is specified -- it must be removed
@@ -56,7 +55,7 @@ def convert_filepath_to_posix(
 
 def convert_filepath_to_windows(
     filepath: str,
-):
+) -> str:
     # posix filepath provided
     if '/' in filepath:
         output_filepath = filepath.replace('/', '\\')
@@ -67,7 +66,10 @@ def convert_filepath_to_windows(
     return output_filepath
 
 
-def get_local_file_hash(filepath, chunk_size=4096):
+def get_local_file_hash(
+    filepath: str,
+    chunk_size=4096
+) -> str:
     if os.path.isfile(filepath):
         hash_md5 = hashlib.md5()
         with open(filepath, 'rb') as file:
@@ -92,8 +94,17 @@ def create_textfile(
 
 def get_textfile_content(
     filepath: str,
-):
+) -> str:
     with open(filepath, 'r+') as in_file:
         content = in_file.read()
 
     return content
+
+
+def open_json(
+    filepath: str,
+) -> dict:
+    with open(filepath, 'rb') as in_file:
+        payload = json.load(in_file)
+
+    return payload

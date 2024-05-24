@@ -11,13 +11,6 @@ import datetime as dt
 import boto_plus
 
 
-def open_json(filepath):
-    with open(filepath, 'rb') as in_file:
-        payload = json.load(in_file)
-
-    return payload
-
-
 class TestBatchPlus(unittest.TestCase):
 
     def setUp(self):
@@ -42,10 +35,10 @@ class TestBatchPlus(unittest.TestCase):
         iam   = boto3.client('iam')
         ec2   = boto3.client('ec2', region_name=self.region)
 
-        mock_admin_policy = open_json(
+        mock_admin_policy = boto_plus.helpers.open_json(
             'tests/mock-iam-policies/mock-admin-iam-policy.json'
         )
-        mock_assume_role_policy = open_json(
+        mock_assume_role_policy = boto_plus.helpers.open_json(
             'tests/mock-iam-policies/mock-batch-assume-role-policy.json'
         )
 
@@ -226,10 +219,10 @@ class TestBatchPlus(unittest.TestCase):
         iam   = boto3.client('iam')
         ec2   = boto3.client('ec2', region_name=self.region)
 
-        mock_admin_policy = open_json(
+        mock_admin_policy = boto_plus.helpers.open_json(
             'tests/mock-iam-policies/mock-admin-iam-policy.json'
         )
-        mock_assume_role_policy = open_json(
+        mock_assume_role_policy = boto_plus.helpers.open_json(
             'tests/mock-iam-policies/mock-batch-assume-role-policy.json'
         )
 

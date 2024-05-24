@@ -2,6 +2,8 @@ import json
 import uuid
 import boto3
 
+import boto_plus
+
 
 class StepFunctionPlus:
 
@@ -27,7 +29,7 @@ class StepFunctionPlus:
         name: str,
         version=None,
     ) -> dict:
-        state_machine_arn = self.__create_state_machine_arn(name=name, version=version)
+        state_machine_arn = self.create_state_machine_arn(name=name, version=version)
         response = self.__sfn_client.describe_state_machine(stateMachineArn=state_machine_arn)
         return response
 
@@ -72,7 +74,7 @@ class StepFunctionPlus:
         if arn_only and version_only:
             raise RuntimeError('Only one of "arn_only", "version_only" may be supplied (received both).')
 
-        state_machine_arn = self.__create_state_machine_arn(name=name, version=None)
+        state_machine_arn = self.create_state_machine_arn(name=name, version=None)
 
         max_results = 1000
 
@@ -107,7 +109,7 @@ class StepFunctionPlus:
         name: str,
         version=None,
     ) -> bool:
-        state_machine_arn = self.__create_state_machine_arn(name=name, version=version)
+        state_machine_arn = self.create_state_machine_arn(name=name, version=version)
 
         try:
             self.__sfn_client.describe_state_machine(
@@ -132,7 +134,7 @@ class StepFunctionPlus:
         version=None,
         trace_header=None,
     ) -> dict:
-        state_machine_arn = self.__create_state_machine_arn(name=name, version=version)
+        state_machine_arn = self.create_state_machine_arn(name=name, version=version)
 
         if execution_name is None:
             job_hash = uuid.uuid4().hex[:8]
@@ -153,11 +155,94 @@ class StepFunctionPlus:
         return response
 
 
-    def __create_state_machine_arn(
+    def create_state_machine(
+        self,
+        name: str,
+        definition: str,
+        parse_definition_from_filepath: bool,
+        role_arn: str,
+        type='STANDARD',
+        log_level='ALL',
+        log_execution_data=True,
+        log_group_arn=None,
+        enable_tracing=True,
+        publish=True,
+        version_description=None,
+        tags=None,
+    ) -> dict:
+        if type not in ('STANDARD', 'EXPRESS'):
+            error_str = f'Provided variable "type" must be one of "STANDARD", "EXPRESS" (received "{type}").'
+            raise RuntimeError(error_str)
+
+        if log_level not in ('ALL', 'ERROR', 'FATAL', 'OFF'):
+            error_str = 'Provided variable "log_level" must be one of "ALL", "ERROR", "FATAL", "OFF" ' \
+                f'(received "{log_level}").'
+            raise RuntimeError(error_str)
+
+        log_config = {
+            'level' : log_level,
+            'includeExecutionData' : log_execution_data,
+        }
+
+        if log_group_arn is not None:
+            log_config['destinations'] = [{
+                'cloudWatchLogsLogGroup': {
+                    'logGroupArn': log_group_arn,
+                }
+            }]
+
+        tracing_config = {
+            'enabled' : enable_tracing,
+        }
+
+        if parse_definition_from_filepath:
+            parsed_definition = boto_plus.helpers.open_json(definition)
+        else:
+            parsed_definition = definition
+
+        input_payload = {
+            'name' : name,
+            'definition' : parsed_definition,
+            'roleArn' : role_arn,
+            'type' : type,
+            'loggingConfiguration' : log_config,
+            'publish' : publish,
+            'tracingConfiguration' : tracing_config,
+        }
+
+        if not version_description is None:
+            input_payload['versionDescription'] = version_description
+
+        if not tags is None:
+            input_payload['tags'] = tags
+
+        response = self.__sfn_client.create_state_machine(**input_payload)
+        return response
+
+
+    def create_state_machine_arn(
         self,
         name: str,
         version=None,
-    ):
+    ) -> str:
+        """
+        Uses the Botocore config and boto3 session provided during initialization to get the region
+        & account ID, which is used to build the state machine arn.
+
+        Arguments
+        ----------
+        name : str
+            The name of the state machine
+
+        version: str
+            The version number/identifier of the state machine version (if applicable)
+
+        Returns
+        ----------
+        state_machine_arn : str
+            The created ARN of the state machine with the provided name/version.
+
+        """
         if version is None:
             state_machine_arn = f'arn:aws:states:{self.__region_name}:{self.__account_id}:stateMachine:{name}'
         else:

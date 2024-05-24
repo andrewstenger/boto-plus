@@ -15,7 +15,11 @@
 ## StepFunctionPlus -- Public Functions
 - `does_state_machine_exist(name: str, version=None)`
 - `execute_state_machine(name: str, input: dict, execution_name=None, version=None, trace_header=None)`
-- `list_state_machines()`
+- `list_state_machines(name_only=False, arn_only=False)`
+- `describe_state_machine(name: str, version=None)`
+- `list_state_machine_versions(name: str, arn_only=False, version_only=False)`
+- `create_state_machine(name: str, definition: str, parse_definition_from_filepath: bool, role_arn: str, type='STANDARD', log_level='ALL', log_execution_data=True, log_group_arn=None, enable_tracing=True, publish=True, version_description=None, tags=None)`
+- `create_state_machine_arn(name: str, version=None)`
 
 ## S3Plus -- Public Functions
 - `list_objects(bucket: str, prefix: str, filter='')`
@@ -50,4 +54,5 @@
 
 ### To-Do
 - create `delete_all_versions_of_all_objects_at_prefix()`
-- 
+- get_prefix_from_key should chop off the "s3://{bucket}" part if it is provided
+- expand unit tests for step functions plus

@@ -8,21 +8,17 @@ import unittest
 import shutil
 
 import boto_plus
-
-
-def open_json(filepath):
-    with open(filepath, 'rb') as in_file:
-        payload = json.load(in_file)
-
-    return payload
+import boto_plus.helpers as helpers
 
 
 class TestStepFunctionPlus(unittest.TestCase):
 
+    @moto.mock_aws
     def setUp(self):
         self.region = 'us-east-1'
         self.boto_config = botocore.config.Config(region_name=self.region)
         self.boto_session = boto3.session.Session()
+        self.account_id = '123456789012'
 
         self.data_directory = 'data'
         if os.path.isdir(self.data_directory):
@@ -40,10 +36,10 @@ class TestStepFunctionPlus(unittest.TestCase):
         iam = self.boto_session.client('iam', config=self.boto_config)
         sfn = self.boto_session.client('stepfunctions', config=self.boto_config)
 
-        mock_admin_policy = open_json(
+        mock_admin_policy = helpers.open_json(
             'tests/mock-iam-policies/mock-admin-iam-policy.json'
         )
-        mock_assume_role_policy = open_json(
+        mock_assume_role_policy = helpers.open_json(
             'tests/mock-iam-policies/mock-batch-assume-role-policy.json'
         )
 
@@ -95,10 +91,10 @@ class TestStepFunctionPlus(unittest.TestCase):
         iam = self.boto_session.client('iam', config=self.boto_config)
         sfn = self.boto_session.client('stepfunctions', config=self.boto_config)
 
-        mock_admin_policy = open_json(
+        mock_admin_policy = helpers.open_json(
             'tests/mock-iam-policies/mock-admin-iam-policy.json'
         )
-        mock_assume_role_policy = open_json(
+        mock_assume_role_policy = helpers.open_json(
             'tests/mock-iam-policies/mock-batch-assume-role-policy.json'
         )
 
@@ -146,10 +142,10 @@ class TestStepFunctionPlus(unittest.TestCase):
         iam = self.boto_session.client('iam', config=self.boto_config)
         sfn = self.boto_session.client('stepfunctions', config=self.boto_config)
 
-        mock_admin_policy = open_json(
+        mock_admin_policy = helpers.open_json(
             'tests/mock-iam-policies/mock-admin-iam-policy.json'
         )
-        mock_assume_role_policy = open_json(
+        mock_assume_role_policy = helpers.open_json(
             'tests/mock-iam-policies/mock-batch-assume-role-policy.json'
         )
 
@@ -211,18 +207,75 @@ class TestStepFunctionPlus(unittest.TestCase):
         self.assertEqual(input['var-2'], 'value-2')
 
 
+    @moto.mock_aws
+    def test_create_state_machine(self):
+        iam = self.boto_session.client('iam', config=self.boto_config)
+        sfn = self.boto_session.client('stepfunctions', config=self.boto_config)
+
+        mock_admin_policy = helpers.open_json(
+            'tests/mock-iam-policies/mock-admin-iam-policy.json'
+        )
+        mock_assume_role_policy = helpers.open_json(
+            'tests/mock-iam-policies/mock-batch-assume-role-policy.json'
+        )
+
+        # create mock IAM admin policy (we are not testing permissions here yet)
+        response = iam.create_policy(
+            PolicyName='mock-admin',
+            PolicyDocument=json.dumps(mock_admin_policy)
+        )
+
+        admin_policy_arn = response['Policy']['Arn']
+
+        # create Batch service role
+        response = iam.create_role(
+            RoleName='mock-service-role',
+            AssumeRolePolicyDocument=json.dumps(mock_assume_role_policy)
+        )
+
+        service_role_arn = response['Role']['Arn']
+
+        iam.attach_role_policy(
+            RoleName='mock-service-role',
+            PolicyArn=admin_policy_arn,
+        )
+
+        sfn_plus = boto_plus.StepFunctionPlus(
+            boto_config=self.boto_config,
+            boto_session=self.boto_session,
+        )
+
+        sfn_plus.create_state_machine(
+            name='mock-machine',
+            definition=json.dumps({}),
+            parse_definition_from_filepath=False,
+            role_arn=service_role_arn,
+            version_description='9000',
+        )
+
+        # assert the state machine was created
+        arn = f'arn:aws:states:{self.region}:{self.account_id}:stateMachine:mock-machine'
+        response = sfn.describe_state_machine(
+            stateMachineArn=arn,
+        )
+
+        self.assertEqual(response['name'], 'mock-machine')
+        self.assertEqual(response['roleArn'], f'arn:aws:iam::{self.account_id}:role/mock-service-role')
+
+
     """
-    # Not implemented in Moto's library yet https://docs.getmoto.org/en/latest/docs/services/stepfunctions.html
+    # Placeholder for a future test. The function list_state_machine_versions() is not
+    # implemented in Moto's library yet https://docs.getmoto.org/en/latest/docs/services/stepfunctions.html .
 
     @moto.mock_aws
     def test_list_state_machine_versions(self):
         iam = self.boto_session.client('iam', config=self.boto_config)
         sfn = self.boto_session.client('stepfunctions', config=self.boto_config)
 
-        mock_admin_policy = open_json(
+        mock_admin_policy = helpers.open_json(
             'tests/mock-iam-policies/mock-admin-iam-policy.json'
         )
-        mock_assume_role_policy = open_json(
+        mock_assume_role_policy = helpers.open_json(
             'tests/mock-iam-policies/mock-batch-assume-role-policy.json'
         )
 
