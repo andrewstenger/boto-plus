@@ -162,8 +162,8 @@ class StepFunctionPlus:
         parse_definition_from_filepath: bool,
         role_arn: str,
         type='STANDARD',
-        log_level='ALL',
-        log_execution_data=True,
+        log_level='OFF',
+        log_execution_data=False,
         log_group_arn=None,
         enable_tracing=True,
         publish=True,
@@ -179,17 +179,31 @@ class StepFunctionPlus:
                 f'(received "{log_level}").'
             raise RuntimeError(error_str)
 
+        if log_level == 'OFF' and log_execution_data:
+            error_str = 'Provided variable "log_level" is set to "OFF", but variable "log_execution_data" ' \
+                'is set to True. Either set "log_level" to one of "ALL", "ERROR", "FATAL", or set ' \
+                '"log_execution_data" to False'
+            raise RuntimeError(error_str)
+
+        if log_level != 'OFF' and log_group_arn is None:
+            error_str = f'Provided variable "log_level" is set to "{log_level}", but variable ' \
+                '"log_group_arn" has not been provided. Either set "log_level" to "OFF", or set ' \
+                '"log_group_arn" to a valid IAM role.'
+            raise RuntimeError(error_str)
+
         log_config = {
             'level' : log_level,
-            'includeExecutionData' : log_execution_data,
         }
 
-        if log_group_arn is not None:
-            log_config['destinations'] = [{
-                'cloudWatchLogsLogGroup': {
-                    'logGroupArn': log_group_arn,
-                }
-            }]
+        if log_level != 'OFF':
+            log_config['includeExecutionData'] = log_execution_data
+
+            if log_group_arn is not None:
+                log_config['destinations'] = [{
+                    'cloudWatchLogsLogGroup': {
+                        'logGroupArn': log_group_arn,
+                    }
+                }]
 
         tracing_config = {
             'enabled' : enable_tracing,
@@ -200,9 +214,11 @@ class StepFunctionPlus:
         else:
             parsed_definition = definition
 
+        parsed_definition_str = json.dumps(parsed_definition)
+
         input_payload = {
             'name' : name,
-            'definition' : parsed_definition,
+            'definition' : parsed_definition_str,
             'roleArn' : role_arn,
             'type' : type,
             'loggingConfiguration' : log_config,
@@ -212,6 +228,9 @@ class StepFunctionPlus:
 
         if not version_description is None:
             input_payload['versionDescription'] = version_description
+
+        if log_level != 'OFF':
+            input_payload['loggingConfiguration'] = log_config
 
         if not tags is None:
             input_payload['tags'] = tags
