@@ -326,7 +326,7 @@ class S3Plus:
         dryrun=True,
         verbose=True,
     ) -> str:
-        filepath_hash = boto_plus.get_local_file_hash(filepath)
+        filepath_hash = boto_plus.helpers.get_local_file_hash(filepath)
 
         hash_args = {
             'Metadata' : {
@@ -445,7 +445,7 @@ class S3Plus:
                 ]
 
             elif sync_type == 'local-to-s3':
-                source_filepaths = boto_plus.get_filepaths_in_directory(
+                source_filepaths = boto_plus.helpers.get_filepaths_in_directory(
                     local_directory=source,
                     recursive=True,
                 )
@@ -509,7 +509,7 @@ class S3Plus:
 
             elif sync_type == 'local-to-s3':
                 target_bucket, target_prefix = self.get_bucket_and_key_from_uri(target)
-                source_filepaths = boto_plus.get_filepaths_in_directory(
+                source_filepaths = boto_plus.helpers.get_filepaths_in_directory(
                     local_directory=source,
                     recursive=True,
                 )
@@ -595,11 +595,11 @@ class S3Plus:
             target_prefix    = payload['target-prefix']
 
             filepath_no_prefix = source_filepath.replace(source_directory, '').lstrip('/')
-            partial_key = boto_plus.convert_filepath_to_posix(filepath_no_prefix)
+            partial_key = boto_plus.helpers.convert_filepath_to_posix(filepath_no_prefix)
             target_key  = posixpath.join(target_prefix, partial_key)
 
             if os.path.isfile(source_filepath):
-                source_local_file_hash = boto_plus.get_local_file_hash(source_filepath)
+                source_local_file_hash = boto_plus.helpers.get_local_file_hash(source_filepath)
             else:
                 raise RuntimeError(f'The provided file does not exist: "{source_filepath}"')
 
@@ -627,12 +627,12 @@ class S3Plus:
 
             partial_target_filepath = source_key.replace(source_prefix, '').lstrip('/')
 
-            if boto_plus.is_windows_filepath(target_directory):
-                partial_target_filepath = boto_plus.convert_filepath_to_windows(partial_target_filepath)
+            if boto_plus.helpers.is_windows_filepath(target_directory):
+                partial_target_filepath = boto_plus.helpers.convert_filepath_to_windows(partial_target_filepath)
                 target_filepath = os.join(target_directory, partial_target_filepath)
 
             else:
-                partial_target_filepath = boto_plus.convert_filepath_to_posix(partial_target_filepath)
+                partial_target_filepath = boto_plus.helpers.convert_filepath_to_posix(partial_target_filepath)
                 target_filepath = posixpath.join(target_directory, partial_target_filepath)
 
             if self.does_object_exist(bucket=source_bucket, key=source_key):
@@ -642,7 +642,7 @@ class S3Plus:
                 raise RuntimeError(f'The provided S3 object does not exist: "{uri}"')
 
             if os.path.isfile(target_filepath):
-                target_local_file_hash = boto_plus.get_local_file_hash(target_filepath)
+                target_local_file_hash = boto_plus.helpers.get_local_file_hash(target_filepath)
             else:
                 target_local_file_hash = None
 

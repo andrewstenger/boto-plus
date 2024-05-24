@@ -6,6 +6,7 @@ import unittest
 import shutil
 
 import boto_plus
+import boto_plus.helpers as helpers
 
 
 class TestS3Plus(unittest.TestCase):
@@ -65,7 +66,7 @@ class TestS3Plus(unittest.TestCase):
 
         local_filepath = '/tmp/test-upload-object.txt'
         mock_content = 'mock text file content'
-        boto_plus.create_textfile(
+        helpers.create_textfile(
             filepath=local_filepath,
             content=mock_content,
         )
@@ -287,15 +288,15 @@ class TestS3Plus(unittest.TestCase):
 
         path = 'data/s3-to-local/local-outputs/subjects/1001/metadata/1001-metadata.csv'
         self.assertTrue(os.path.isfile(path))
-        self.assertEqual(boto_plus.get_textfile_content(path), 'column1\nvalue')
+        self.assertEqual(helpers.get_textfile_content(path), 'column1\nvalue')
 
         path = 'data/s3-to-local/local-outputs/subjects/1002/metadata/1002-metadata.csv'
         self.assertTrue(os.path.isfile(path))
-        self.assertEqual(boto_plus.get_textfile_content(path), 'column2\nvalue')
+        self.assertEqual(helpers.get_textfile_content(path), 'column2\nvalue')
 
         path = 'data/s3-to-local/local-outputs/subjects/1002/data/1002.txt'
         self.assertTrue(os.path.isfile(path))
-        self.assertEqual(boto_plus.get_textfile_content(path), 'test-1002')
+        self.assertEqual(helpers.get_textfile_content(path), 'test-1002')
 
         # returned filepaths are as-expected
         self.assertIn('data/s3-to-local/local-outputs/subjects/1001/metadata/1001-metadata.csv', filepaths)
@@ -324,12 +325,12 @@ class TestS3Plus(unittest.TestCase):
         os.makedirs('data/local-to-s3/local-inputs/subject/1001/', exist_ok=False)
         os.makedirs('data/local-to-s3/local-inputs/subject/1002/nested/', exist_ok=False)
 
-        boto_plus.create_textfile(
+        helpers.create_textfile(
             content='this is the first test',
             filepath='data/local-to-s3/local-inputs/subject/1001/test-file-1.txt',
         )
 
-        boto_plus.create_textfile(
+        helpers.create_textfile(
             content='this is the second test',
             filepath='data/local-to-s3/local-inputs/subject/1002/nested/test-file-2.txt',
         )
