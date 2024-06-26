@@ -1,17 +1,6 @@
-[project]
-name = "boto_plus"
-version = "0.0.1"
-authors = [
-  { name="Andrew Stenger", email="andrew.stenger93@gmail.com" },
+[build-system]
+requires = [
+	"setuptools", 
+	"wheel",
 ]
-description = "Wrapper library to make it easier to use the boto3 Python library. Work is in progress, leading up to Release v1.0.0"
-readme = "README.md"
-requires-python = ">=3.8"
-classifiers = [
-    "Programming Language :: Python :: 3",
-    "License :: OSI Approved :: MIT License",
-]
-
-[project.urls]
-Homepage = "https://github.com/andrewstenger/boto-plus"
-Issues = "https://github.com/andrewstenger/boto-plus/issues"
+build-backend = "setuptools.build_meta"
