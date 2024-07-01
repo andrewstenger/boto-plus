@@ -1,3 +1,5 @@
+import string
+import uuid
 import boto3
 import botocore
 
@@ -30,6 +32,53 @@ class DynamoPlus:
                 return False
             else:
                 raise exception
+
+
+    def get_all_records_from_table(
+        self,
+        table_name: str,
+        select='ALL_ATTRIBUTES',
+        fields=None,
+    ) -> list[dict]:
+        valid_select = ('ALL_ATTRIBUTES', 'ALL_PROJECTED_ATTRIBUTES', 'COUNT', 'SPECIFIC_ATTRIBUTES')
+        if select not in valid_select:
+            raise RuntimeError(f'The provided value for "select" must be one of "{valid_select}"')
+
+        if select == 'SPECIFIC_ATTRIBUTES' and fields is None:
+            error_str = 'Provided argument "select" = "SPECIFIC_ATTRIBUTES", but no value for "fields" was provided.'
+            raise RuntimeError(error_str)
+
+        if select != 'SPECIFIC_ATTRIBUTES' and fields is not None:
+            error_str = f'Provided argument "select" = "{select}", but "fields" = "{fields}" (should be None).'
+            raise RuntimeError(error_str)
+
+        expr_attr_names = {f'#{uuid.uuid4().hex[:8]}' : c for c in fields}
+        projection_expression = ','.join(list(expr_attr_names.keys()))
+
+        table = self.__dynamo_resource.Table(table_name)
+        limit = 1000
+
+        records = list()
+
+        response = table.scan(
+            Limit=limit,
+            Select=select,
+            ProjectionExpression=projection_expression,
+            ExpressionAttributeNames=expr_attr_names,
+        )
+        records.extend(response['Items'])
+
+        while 'LastEvaluatedKey' in response:
+            response = table.scan(
+                ExclusiveStartKey=response['LastEvaluatedKey'], 
+                Limit=limit,
+                Select=select,
+                ProjectionExpression=projection_expression,
+                ExpressionAttributeNames=expr_attr_names,
+            )
+            records.extend(response['Items'])
+
+        return records
 
 
     def get_record_with_primary_key_from_table(
@@ -162,3 +211,35 @@ class DynamoPlus:
             table.delete_item(
                 Key=key,
             )
+
+
+    """
+    # To-Do: fill this in
+    def scan(
+        self,
+        index_name=None,
+        attributes_to_get=None,
+        select=None,
+        scan_filter=None,
+        conditional_operator=None,
+        exclusive_start_key=None,
+        return_consumed_capacity=None,
+        total_segments=None,
+        segment=None,
+        projection_expression=None,
+        filter_expression=None,
+        expression_attribute_names=None,
+        expression_attribute_values=None,
+        consistent_read=False,
+    ):
+        item = dict()
+
+        if index_name is not None:
+            item['IndexName'] = index_name
+        if attributes_to_get is not None:
+            item['AttributesToGet'] = attributes_to_get
+        if select is not None:
+            item['Select'] = select
+        ...
+    """
+
