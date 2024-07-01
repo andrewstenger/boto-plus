@@ -8,6 +8,7 @@ Wrapper library to make it easier to use the boto3 Python library. Work is in pr
 
 ### DynamoPlus -- Public Functions
 - `does_table_exist(table_name: str)`
+- `get_all_records_from_table(table_name: str)`
 - `get_record_with_primary_key_from_table(primary_key: str, primary_key_value: any, dynamo_table: str)`
 - `get_record_with_composite_key_from_table(primary_key: str, primary_key_value: any, secondary_key: str, secondary_key_value: any, dynamo_table: str)`
 - `get_records_with_attribute_from_table(attribute: str, attribute_value: any, dynamo_table: str)`
