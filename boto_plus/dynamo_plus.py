@@ -85,9 +85,9 @@ class DynamoPlus:
         self,
         pk: str,
         pk_value: any,
-        dynamo_table: str,
+        table_name: str,
     ) -> dict:
-        response = self.__dynamo_resource.Table(dynamo_table).get_item(
+        response = self.__dynamo_resource.Table(table_name).get_item(
             Key={
                 pk : pk_value,
             }
@@ -106,9 +106,9 @@ class DynamoPlus:
         pk_value: any,
         sk: str,
         sk_value: any,
-        dynamo_table: str,
+        table_name: str,
     ) -> dict:
-        response = self.__dynamo_resource.Table(dynamo_table).get_item(
+        response = self.__dynamo_resource.Table(table_name).get_item(
             Key={
                 pk : pk_value,
                 sk : sk_value,
@@ -126,13 +126,13 @@ class DynamoPlus:
         self,
         attribute: str,
         attribute_value: any,
-        dynamo_table: str,
+        table_name: str,
     ) -> list[dict]:
         """
         Get the records for the (non-primary key) attribute from the provided
         dynamo table.
         """
-        response = self.__dynamo_resource.Table(dynamo_table).scan(
+        response = self.__dynamo_resource.Table(table_name).scan(
             FilterExpression=boto3.dynamodb.conditions.Attr(attribute).eq(attribute_value)
         )
 
@@ -146,9 +146,9 @@ class DynamoPlus:
     def put_record_in_table(
         self,
         record: dict,
-        dynamo_table: str,
+        table_name: str,
     ):
-        self.__dynamo_resource.Table(dynamo_table).put_item(
+        self.__dynamo_resource.Table(table_name).put_item(
             Item=record,
         )
 
@@ -157,9 +157,9 @@ class DynamoPlus:
         self,
         pk: str,
         pk_value: any,
-        dynamo_table: str,
+        table_name: str,
     ) -> dict:
-        response = self.__dynamo_resource.Table(dynamo_table).delete_item(
+        response = self.__dynamo_resource.Table(table_name).delete_item(
             Key={
                 pk : pk_value,
             }
@@ -174,9 +174,9 @@ class DynamoPlus:
         pk_value: any,
         sk: str,
         sk_value: any,
-        dynamo_table: str,
+        table_name: str,
     ) -> dict:
-        response = self.__dynamo_resource.Table(dynamo_table).delete_item(
+        response = self.__dynamo_resource.Table(table_name).delete_item(
             Key={
                 pk : pk_value,
                 sk : sk_value,
@@ -191,12 +191,12 @@ class DynamoPlus:
         attribute: str,
         attribute_value: any,
         pk: str,
-        dynamo_table: str,
+        table_name: str,
         sk=None,
     ) -> dict:
-        table = self.__dynamo_resource.Table(dynamo_table)
+        table = self.__dynamo_resource.Table(table_name)
 
-        scan_response = self.__dynamo_resource.Table(dynamo_table).scan(
+        scan_response = self.__dynamo_resource.Table(table_name).scan(
             FilterExpression=boto3.dynamodb.conditions.Attr(attribute).eq(attribute_value)
         )
 
