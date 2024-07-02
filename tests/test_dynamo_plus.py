@@ -104,7 +104,7 @@ class TestDynamoPlus(unittest.TestCase):
         record = dynamo_plus.get_record_with_primary_key_from_table(
             pk='mock-field',
             pk_value='abc123',
-            dynamo_table='mock-table',
+            table_name='mock-table',
         )
 
         self.assertEqual(record['other-field'], 'test')
@@ -114,14 +114,14 @@ class TestDynamoPlus(unittest.TestCase):
             dynamo_plus.get_record_with_primary_key_from_table(
                 pk='nonexistent-mock-field',
                 pk_value='def456',
-                dynamo_table='mock-table',
+                table_name='mock-table',
             )
 
         # function returns empty list if the primary key field's value is not present in any records
         record = dynamo_plus.get_record_with_primary_key_from_table(
             pk='mock-field',
             pk_value='def456',
-            dynamo_table='mock-table',
+            table_name='mock-table',
         )
         self.assertEqual(len(record), 0)
 
@@ -179,7 +179,7 @@ class TestDynamoPlus(unittest.TestCase):
             pk_value='abc123',
             sk='mock-field-sort',
             sk_value='def456',
-            dynamo_table='mock-table',
+            table_name='mock-table',
         )
 
         self.assertEqual(record['other-field'], 'test')
@@ -191,7 +191,7 @@ class TestDynamoPlus(unittest.TestCase):
                 pk_value='v1',
                 sk='nonexistent-sort-field',
                 sk_value='v2',
-                dynamo_table='mock-table',
+                table_name='mock-table',
             )
 
         # function returns empty list if one of the composite-key field's value is not present in any records
@@ -200,7 +200,7 @@ class TestDynamoPlus(unittest.TestCase):
             pk_value='def456',
             sk='mock-field-sort',
             sk_value='mock-value',
-            dynamo_table='mock-table',
+            table_name='mock-table',
         )
         self.assertEqual(len(record), 0)
 
@@ -254,7 +254,7 @@ class TestDynamoPlus(unittest.TestCase):
         records = dynamo_plus.get_records_with_attribute_from_table(
             attribute='random-attribute',
             attribute_value='mock-attribute-value',
-            dynamo_table='mock-table',
+            table_name='mock-table',
         )
 
         self.assertEqual(len(records), 2)
@@ -265,7 +265,7 @@ class TestDynamoPlus(unittest.TestCase):
         record = dynamo_plus.get_records_with_attribute_from_table(
             attribute='nonexistent-field',
             attribute_value='nonexistent-attribute-value',
-            dynamo_table='mock-table',
+            table_name='mock-table',
         )
         self.assertEqual(len(record), 0)
 
@@ -273,7 +273,7 @@ class TestDynamoPlus(unittest.TestCase):
         record = dynamo_plus.get_records_with_attribute_from_table(
             attribute='random-attribute',
             attribute_value='not-real',
-            dynamo_table='mock-table',
+            table_name='mock-table',
         )
         self.assertEqual(len(record), 0)
 
@@ -313,7 +313,7 @@ class TestDynamoPlus(unittest.TestCase):
                 'mock-field-hash' : 'abc123',
                 'random-attribute' : 'mock-attribute-value',
             },
-            dynamo_table='mock-table',
+            table_name='mock-table',
         )
 
         # function retrieves records for the provided attribute
@@ -365,7 +365,7 @@ class TestDynamoPlus(unittest.TestCase):
         dynamo_plus.delete_record_with_primary_key_from_table(
             pk='mock-field-hash',
             pk_value='abc123',
-            dynamo_table='mock-table',
+            table_name='mock-table',
         )
 
         # record was deleted
@@ -427,7 +427,7 @@ class TestDynamoPlus(unittest.TestCase):
             pk_value='abc123',
             sk='mock-field-sort',
             sk_value='sort123',
-            dynamo_table='mock-table',
+            table_name='mock-table',
         )
 
         # record was deleted
@@ -481,7 +481,7 @@ class TestDynamoPlus(unittest.TestCase):
             attribute='attribute-field',
             attribute_value='attribute123',
             pk='mock-field-hash',
-            dynamo_table='mock-table',
+            table_name='mock-table',
         )
 
         # record was deleted

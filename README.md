@@ -9,13 +9,13 @@ Wrapper library to make it easier to use the boto3 Python library. Work is in pr
 ### DynamoPlus -- Public Functions
 - `does_table_exist(table_name: str)`
 - `get_all_records_from_table(table_name: str)`
-- `get_record_with_primary_key_from_table(primary_key: str, primary_key_value: any, dynamo_table: str)`
-- `get_record_with_composite_key_from_table(primary_key: str, primary_key_value: any, secondary_key: str, secondary_key_value: any, dynamo_table: str)`
-- `get_records_with_attribute_from_table(attribute: str, attribute_value: any, dynamo_table: str)`
-- `put_record_in_table(record: dict, dynamo_table: str)`
-- `delete_record_with_primary_key_from_table(pk: str, pk_value: any, dynamo_table: str)`
-- `delete_record_with_composite_key_from_table(pk: str, pk_value: any, sk: str, sk_value: any, dynamo_table: str)`
-- `delete_records_with_attribute_from_table(attribute: str, attribute_value: any, pk: str, dynamo_table: str, sk=None)`
+- `get_record_with_primary_key_from_table(primary_key: str, primary_key_value: any, table_name: str)`
+- `get_record_with_composite_key_from_table(primary_key: str, primary_key_value: any, secondary_key: str, secondary_key_value: any, table_name: str)`
+- `get_records_with_attribute_from_table(attribute: str, attribute_value: any, table_name: str)`
+- `put_record_in_table(record: dict, table_name: str)`
+- `delete_record_with_primary_key_from_table(pk: str, pk_value: any, table_name: str)`
+- `delete_record_with_composite_key_from_table(pk: str, pk_value: any, sk: str, sk_value: any, table_name: str)`
+- `delete_records_with_attribute_from_table(attribute: str, attribute_value: any, pk: str, table_name: str, sk=None)`
 
 ### StepFunctionPlus -- Public Functions
 - `does_state_machine_exist(name: str, version=None)`
