@@ -52,30 +52,27 @@ class DynamoPlus:
             error_str = f'Provided argument "select" = "{select}", but "fields" = "{fields}" (should be None).'
             raise RuntimeError(error_str)
 
-        expr_attr_names = {f'#{uuid.uuid4().hex[:8]}' : c for c in fields}
-        projection_expression = ','.join(list(expr_attr_names.keys()))
-
         table = self.__dynamo_resource.Table(table_name)
         limit = 1000
 
+        query = {
+            'Limit' : limit,
+            'Select' : select,
+        }
+
+        if fields is not None:
+            expr_attr_names = {f'#{uuid.uuid4().hex[:8]}' : c for c in fields}
+            query['ProjectionExpression'] = ','.join(list(expr_attr_names.keys()))
+            query['ExpressionAttributeNames'] = expr_attr_names
+
         records = list()
 
-        response = table.scan(
-            Limit=limit,
-            Select=select,
-            ProjectionExpression=projection_expression,
-            ExpressionAttributeNames=expr_attr_names,
-        )
+        response = table.scan(**query)
         records.extend(response['Items'])
 
         while 'LastEvaluatedKey' in response:
-            response = table.scan(
-                ExclusiveStartKey=response['LastEvaluatedKey'], 
-                Limit=limit,
-                Select=select,
-                ProjectionExpression=projection_expression,
-                ExpressionAttributeNames=expr_attr_names,
-            )
+            query['ExclusiveStartKey'] = response['LastEvaluatedKey']
+            response = table.scan(**query)
             records.extend(response['Items'])
 
         return records
