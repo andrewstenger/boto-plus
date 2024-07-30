@@ -140,14 +140,30 @@ class DynamoPlus:
         return items
 
 
-    def put_record_in_table(
+    def put_records_in_table(
         self,
-        record: dict,
+        records: list[dict],
         table_name: str,
+        batch_write=True,
     ):
-        self.__dynamo_resource.Table(table_name).put_item(
-            Item=record,
-        )
+        table = self.__dynamo_resource.Table(table_name)
+
+        if batch_write:
+            try:
+                with table.batch_writer() as batch:
+                    for record in records:
+                        batch.put_item(Item=record)
+            
+
+            except botocore.exceptions.ClientError as e:
+                msg = e.response['Error']['Message']
+                raise RuntimeError(f'Error writing items to {table_name}: {msg}')
+
+        else:
+            for record in records:
+                table.put_item(
+                    Item=record,
+                )
 
 
     def delete_record_with_primary_key_from_table(
