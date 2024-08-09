@@ -348,9 +348,10 @@ class S3Plus:
 
             all_args = {**all_args, **kms_args}
 
+        target_uri = f's3://{bucket}/{key}'
+
         if verbose:
             prefix = '(dryrun)' if dryrun else ''
-            target_uri = f's3://{bucket}/{key}'
             print(f'{prefix} Uploading "{filepath}" to "{target_uri}"...')
 
         if not dryrun:
@@ -361,8 +362,39 @@ class S3Plus:
                 ExtraArgs=all_args,
             )
 
-        uri = f's3://{bucket}/{key}'
-        return uri
+        return target_uri
+
+
+    def upload_object_from_bytes(
+        self,
+        contents: bytes,
+        bucket: str,
+        key: str,
+        dryrun=True,
+        verbose=True,
+    ) -> str:
+        """ additional arguments will have to be added later, right now just have to get a basic version of this function working """
+        contents_hash = boto_plus.helpers.get_contents_hash(contents)
+
+        metadata = {
+            self.__s3_object_hash_field : contents_hash,
+        }
+
+        target_uri = f's3://{bucket}/{key}'
+
+        if verbose:
+            prefix = '(dryrun)' if dryrun else ''
+            print(f'{prefix} Uploading provided bytes to "{target_uri}"...')
+
+        if not dryrun:
+            self.__s3_resource.meta.client.put_object(
+                Body=contents,
+                Bucket=bucket,
+                Key=key,
+                Metadata=metadata,
+            )
+
+        return target_uri
 
 
     ### download ###

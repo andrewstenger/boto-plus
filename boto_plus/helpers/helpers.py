@@ -84,6 +84,17 @@ def get_local_file_hash(
     return local_file_hash
 
 
+def get_contents_hash(
+    contents: bytes,
+):
+    if len(contents) == 0:
+        raise RuntimeError('Provided variable "contents" is empty.')
+
+    hash_md5 = hashlib.md5()
+    hash_md5.update(contents)
+    return hash_md5.hexdigest()
+
+
 def create_textfile(
     content: str,
     filepath: str,
